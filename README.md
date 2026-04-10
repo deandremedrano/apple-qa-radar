@@ -1,16 +1,48 @@
-# React + Vite
+# Apple QA Command Center
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A professional QA testing and Radar bug filing system built specifically for Apple ecosystem applications.
 
-Currently, two official plugins are available:
+## What This Is
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+A React-based QA command center that mirrors the workflow of Apple's internal QA engineers. Select any Apple app, run through a structured test plan, mark pass/fail results, and automatically generate Radar-style bug reports for any failures found.
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- App Library with test plans for Mail, Safari, Messages, Notes, and Calendar
+- Structured test cases covering functional, accessibility, performance, and edge case scenarios
+- Interactive test runner — mark each test as Pass or Fail in real time
+- Automatic Radar report generation for failed tests
+- Auto-detects system environment (OS, browser, machine, screen resolution)
+- Radar Portfolio — stores all filed bug reports in one place
+- Copy any Radar report to clipboard instantly
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- React + Vite
+- Apple-grade dark UI inspired by macOS design system
+- No external dependencies — runs entirely in the browser
+
+## Apps Covered
+
+- Mail (12 test cases)
+- Safari (10 test cases)
+- Messages (8 test cases)
+- Notes (6 test cases)
+- Calendar (6 test cases)
+
+## How It Works
+
+1. Select an Apple app from the App Library
+2. Review the auto-generated test plan
+3. Run each test on your Mac and mark Pass or Fail
+4. For failures, fill in the actual result and root cause
+5. A complete Radar-style bug report is generated automatically
+6. View and copy all filed Radars from the Radar Portfolio
+
+## Why This Exists
+
+Apple QA engineers file bugs using an internal system called Radar. This tool simulates that workflow, allowing me to build a portfolio of real bugs found in Apple applications using the same structured approach Apple uses internally.
+
+## Author
+
+Built by Deandre Medrano
