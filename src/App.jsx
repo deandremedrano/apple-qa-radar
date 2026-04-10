@@ -87,6 +87,28 @@ Respond in this exact JSON format only, no other text:
   ]
 }`;
 
+const REGRESSION_SYSTEM = `You are a senior Apple QA engineer. When given a code change or feature update description, generate a regression test plan identifying which existing tests need to be re-run.
+
+Respond in this exact JSON format only, no other text:
+{
+  "changeDescription": "summary of the change",
+  "riskLevel": "High",
+  "impactedAreas": ["Area 1", "Area 2"],
+  "regressionTests": [
+    {
+      "id": "REG-001",
+      "area": "Area name",
+      "title": "Test to re-run",
+      "reason": "Why this test is impacted",
+      "priority": "P1",
+      "severity": "Critical",
+      "steps": ["Step 1", "Step 2", "Step 3"],
+      "expected": "Expected result"
+    }
+  ],
+  "recommendation": "Overall testing recommendation"
+}`;
+
 const SYSTEM_INFO = {
   os: "macOS 26.5",
   machine: "Apple M3 (arm64)",
@@ -166,6 +188,88 @@ const APP_TEST_PLANS = {
       { id: "CAL-004", area: "Alerts", title: "Event alert fires on time", steps: ["Create event with 5 min alert", "Wait for alert time"], expected: "Notification fires exactly 5 min before event", severity: "Critical" },
       { id: "CAL-005", area: "Views", title: "Switch between day week month", steps: ["Open Calendar", "Click Day", "Click Week", "Click Month"], expected: "Views switch with accurate data", severity: "High" },
       { id: "CAL-006", area: "Sync", title: "Event syncs to iPhone", steps: ["Create event on Mac", "Wait 30 seconds", "Check iPhone Calendar"], expected: "Event appears on iPhone within 30 seconds", severity: "Critical" }
+    ]
+  },
+  photos: {
+    name: "Photos", icon: "🖼️", version: "9.0",
+    areas: ["Library", "Albums", "Editing", "Sharing", "Search", "Accessibility"],
+    tests: [
+      { id: "PHO-001", area: "Library", title: "Photos library loads correctly", steps: ["Open Photos app", "Wait for library to load"], expected: "All photos display in chronological order", severity: "Critical" },
+      { id: "PHO-002", area: "Library", title: "Import photos from iPhone", steps: ["Connect iPhone via USB", "Open Photos", "Click Import", "Select photos", "Click Import Selected"], expected: "Photos import and appear in library", severity: "Critical" },
+      { id: "PHO-003", area: "Albums", title: "Create new album", steps: ["Open Photos", "Click + in Albums sidebar", "Name the album", "Press Enter"], expected: "New empty album created and visible in sidebar", severity: "High" },
+      { id: "PHO-004", area: "Albums", title: "Add photos to album", steps: ["Open Photos", "Select photos", "Right-click", "Add to Album", "Select album"], expected: "Photos appear in selected album", severity: "High" },
+      { id: "PHO-005", area: "Editing", title: "Crop photo correctly", steps: ["Open Photos", "Double-click photo", "Click Edit", "Click Crop", "Adjust crop", "Click Done"], expected: "Photo saves with new crop applied", severity: "High" },
+      { id: "PHO-006", area: "Editing", title: "Adjust photo brightness", steps: ["Open Photos", "Double-click photo", "Click Edit", "Adjust Light slider", "Click Done"], expected: "Photo brightness changes and saves", severity: "Medium" },
+      { id: "PHO-007", area: "Search", title: "Search photos by location", steps: ["Open Photos", "Click Search", "Type city name"], expected: "Photos taken in that location appear", severity: "High" },
+      { id: "PHO-008", area: "Search", title: "Search photos by people", steps: ["Open Photos", "Click Search", "Type person's name"], expected: "Photos with that person appear in results", severity: "High" },
+      { id: "PHO-009", area: "Sharing", title: "Share photo via Messages", steps: ["Open Photos", "Select photo", "Click Share", "Click Messages", "Select contact", "Send"], expected: "Photo sends via Messages successfully", severity: "High" },
+      { id: "PHO-010", area: "Accessibility", title: "VoiceOver describes photos", steps: ["Enable VoiceOver", "Open Photos", "Navigate to a photo"], expected: "VoiceOver reads photo description and date", severity: "High" },
+      { id: "PHO-011", area: "Library", title: "Delete photo moves to Recently Deleted", steps: ["Open Photos", "Select photo", "Press Delete", "Confirm"], expected: "Photo moves to Recently Deleted album", severity: "High" },
+      { id: "PHO-012", area: "Editing", title: "Revert to original after edits", steps: ["Open Photos", "Edit a photo", "Click Revert to Original"], expected: "Photo returns to original unedited state", severity: "Medium" }
+    ]
+  },
+  music: {
+    name: "Music", icon: "🎵", version: "1.4",
+    areas: ["Playback", "Library", "Search", "Playlists", "Sync", "Accessibility"],
+    tests: [
+      { id: "MUS-001", area: "Playback", title: "Play song from library", steps: ["Open Music app", "Navigate to library", "Double-click a song"], expected: "Song plays with correct title and artist in player", severity: "Critical" },
+      { id: "MUS-002", area: "Playback", title: "Pause and resume playback", steps: ["Play a song", "Click pause button", "Click play button"], expected: "Song pauses and resumes at same position", severity: "Critical" },
+      { id: "MUS-003", area: "Playback", title: "Skip to next track", steps: ["Play a song", "Click Next Track button"], expected: "Next song in queue begins playing", severity: "High" },
+      { id: "MUS-004", area: "Playback", title: "Volume control works", steps: ["Play a song", "Drag volume slider left", "Drag volume slider right"], expected: "Volume changes smoothly in both directions", severity: "High" },
+      { id: "MUS-005", area: "Library", title: "Add song to library", steps: ["Open Music", "Search Apple Music", "Click + next to song"], expected: "Song added to library and syncs to devices", severity: "High" },
+      { id: "MUS-006", area: "Playlists", title: "Create new playlist", steps: ["Open Music", "File > New Playlist", "Name playlist", "Add songs"], expected: "Playlist created with songs visible", severity: "High" },
+      { id: "MUS-007", area: "Search", title: "Search Apple Music catalog", steps: ["Open Music", "Click Search", "Type song or artist name"], expected: "Relevant results appear from Apple Music catalog", severity: "High" },
+      { id: "MUS-008", area: "Sync", title: "Library syncs across devices", steps: ["Add song on Mac", "Wait 30 seconds", "Check iPhone Music app"], expected: "Song appears in iPhone library", severity: "Critical" },
+      { id: "MUS-009", area: "Playback", title: "Shuffle mode randomizes playback", steps: ["Open Music", "Select album", "Enable Shuffle", "Play"], expected: "Songs play in random order", severity: "Medium" },
+      { id: "MUS-010", area: "Accessibility", title: "Now Playing accessible via VoiceOver", steps: ["Enable VoiceOver", "Play a song", "Navigate to player"], expected: "VoiceOver reads song title, artist, and controls", severity: "High" }
+    ]
+  },
+  maps: {
+    name: "Maps", icon: "🗺️", version: "7.0",
+    areas: ["Search", "Navigation", "Directions", "Explore", "Offline", "Accessibility"],
+    tests: [
+      { id: "MAP-001", area: "Search", title: "Search for location by name", steps: ["Open Maps", "Click Search bar", "Type location name", "Press Enter"], expected: "Location found and displayed on map", severity: "Critical" },
+      { id: "MAP-002", area: "Navigation", title: "Get driving directions", steps: ["Open Maps", "Search destination", "Click Directions", "Select Drive"], expected: "Route displayed with turn-by-turn directions", severity: "Critical" },
+      { id: "MAP-003", area: "Navigation", title: "Get walking directions", steps: ["Open Maps", "Search destination", "Click Directions", "Select Walk"], expected: "Walking route displayed with estimated time", severity: "High" },
+      { id: "MAP-004", area: "Navigation", title: "Get transit directions", steps: ["Open Maps", "Search destination", "Click Directions", "Select Transit"], expected: "Transit options displayed with schedules", severity: "High" },
+      { id: "MAP-005", area: "Explore", title: "Look Around view works", steps: ["Open Maps", "Search a city", "Click Look Around button"], expected: "Street-level imagery loads and allows navigation", severity: "High" },
+      { id: "MAP-006", area: "Search", title: "Search for nearby restaurants", steps: ["Open Maps", "Click Search", "Type Restaurants"], expected: "Nearby restaurants shown with ratings and hours", severity: "High" },
+      { id: "MAP-007", area: "Explore", title: "Switch between map views", steps: ["Open Maps", "Click map type button", "Switch between Standard, Satellite, Transit"], expected: "Map view changes correctly", severity: "Medium" },
+      { id: "MAP-008", area: "Offline", title: "Offline maps download correctly", steps: ["Open Maps", "Search area", "Download for offline use", "Disable WiFi", "Navigate area"], expected: "Map loads without internet connection", severity: "High" },
+      { id: "MAP-009", area: "Accessibility", title: "VoiceOver reads directions", steps: ["Enable VoiceOver", "Open Maps", "Start navigation"], expected: "VoiceOver announces turn-by-turn directions", severity: "Critical" },
+      { id: "MAP-010", area: "Navigation", title: "ETA updates dynamically", steps: ["Start navigation", "Wait 5 minutes"], expected: "Arrival time updates based on current speed and traffic", severity: "Medium" }
+    ]
+  },
+  facetime: {
+    name: "FaceTime", icon: "📹", version: "18.0",
+    areas: ["Video Call", "Audio Call", "Group Call", "Effects", "Accessibility", "SharePlay"],
+    tests: [
+      { id: "FT-001", area: "Video Call", title: "Initiate video call successfully", steps: ["Open FaceTime", "Enter contact name or number", "Click Video button"], expected: "Video call connects with audio and video", severity: "Critical" },
+      { id: "FT-002", area: "Video Call", title: "Mute and unmute microphone", steps: ["Join FaceTime call", "Click Mute button", "Click Mute again"], expected: "Microphone toggles on and off correctly", severity: "Critical" },
+      { id: "FT-003", area: "Video Call", title: "Turn camera on and off", steps: ["Join FaceTime call", "Click Camera button", "Click Camera again"], expected: "Video feed toggles on and off", severity: "High" },
+      { id: "FT-004", area: "Audio Call", title: "Make audio-only FaceTime call", steps: ["Open FaceTime", "Enter contact", "Click Audio button"], expected: "Audio call connects without video", severity: "High" },
+      { id: "FT-005", area: "Group Call", title: "Add participant to active call", steps: ["Start FaceTime call", "Click Add Person", "Enter contact", "Click Add"], expected: "New participant joins the call", severity: "High" },
+      { id: "FT-006", area: "Effects", title: "Apply portrait mode blur", steps: ["Join FaceTime call", "Click Effects button", "Enable Portrait"], expected: "Background blurs while face remains sharp", severity: "Medium" },
+      { id: "FT-007", area: "SharePlay", title: "Share screen during call", steps: ["Join FaceTime call", "Click Share Content", "Click Share Screen"], expected: "Screen shares and is visible to other participants", severity: "High" },
+      { id: "FT-008", area: "Accessibility", title: "Live Captions display correctly", steps: ["Join FaceTime call", "Enable Live Captions in settings"], expected: "Real-time captions appear for speech", severity: "High" },
+      { id: "FT-009", area: "Video Call", title: "Call ends cleanly", steps: ["Join FaceTime call", "Click End button"], expected: "Call ends immediately and returns to FaceTime home", severity: "Critical" },
+      { id: "FT-010", area: "Group Call", title: "Grid view shows all participants", steps: ["Join group FaceTime call with 3+ people", "Enable Grid view"], expected: "All participants visible in grid layout", severity: "Medium" }
+    ]
+  },
+  siri: {
+    name: "Siri", icon: "🎙️", version: "18.0",
+    areas: ["Voice", "Commands", "Integration", "Shortcuts", "Privacy", "Accessibility"],
+    tests: [
+      { id: "SIRI-001", area: "Voice", title: "Hey Siri activates correctly", steps: ["Say Hey Siri clearly", "Wait for activation"], expected: "Siri activates and shows listening indicator", severity: "Critical" },
+      { id: "SIRI-002", area: "Commands", title: "Send message via Siri", steps: ["Activate Siri", "Say Send a message to [contact]", "Dictate message", "Confirm"], expected: "Message sent to correct contact", severity: "Critical" },
+      { id: "SIRI-003", area: "Commands", title: "Set timer via Siri", steps: ["Activate Siri", "Say Set a timer for 5 minutes"], expected: "Timer starts for exactly 5 minutes", severity: "High" },
+      { id: "SIRI-004", area: "Commands", title: "Get weather via Siri", steps: ["Activate Siri", "Say What is the weather today"], expected: "Current weather for current location displayed", severity: "High" },
+      { id: "SIRI-005", area: "Commands", title: "Open app via Siri", steps: ["Activate Siri", "Say Open Safari"], expected: "Safari opens immediately", severity: "High" },
+      { id: "SIRI-006", area: "Shortcuts", title: "Run Shortcut via Siri", steps: ["Create a Shortcut", "Activate Siri", "Say shortcut name"], expected: "Shortcut executes correctly", severity: "High" },
+      { id: "SIRI-007", area: "Integration", title: "Siri suggests app based on routine", steps: ["Use an app at the same time daily for 3 days", "Check Siri suggestions"], expected: "App appears in Siri suggestions at that time", severity: "Medium" },
+      { id: "SIRI-008", area: "Privacy", title: "Siri requests only work on device", steps: ["Disable Siri & Dictation in Settings", "Activate Siri"], expected: "Siri does not activate when disabled", severity: "Critical" },
+      { id: "SIRI-009", area: "Accessibility", title: "Type to Siri works correctly", steps: ["Enable Type to Siri in Accessibility", "Activate Siri", "Type a command"], expected: "Siri responds to typed command correctly", severity: "High" },
+      { id: "SIRI-010", area: "Commands", title: "Create calendar event via Siri", steps: ["Activate Siri", "Say Schedule a meeting tomorrow at 2pm"], expected: "Calendar event created at correct time", severity: "High" }
     ]
   }
 };
@@ -262,9 +366,13 @@ export default function App() {
   const [matrixLoading, setMatrixLoading] = useState(false);
   const [matrixStatus, setMatrixStatus] = useState("");
   const [matrixReport, setMatrixReport] = useState(null);
+  const [regressionDesc, setRegressionDesc] = useState("");
+  const [regressionLoading, setRegressionLoading] = useState(false);
+  const [regressionStatus, setRegressionStatus] = useState("");
+  const [regressionReport, setRegressionReport] = useState(null);
+  const [regressionResults, setRegressionResults] = useState({});
 
   const generateRadarId = () => `FB${Math.floor(10000000 + Math.random() * 90000000)}`;
-
   const selectApp = (key) => { setSelectedApp(key); setTestResults({}); setIsCustomSession(false); setScreen("testplan"); };
 
   const markTest = (id, status) => {
@@ -301,8 +409,7 @@ export default function App() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model: "mistral-nemo:latest", messages: [{ role: "system", content: system }, { role: "user", content: userMessage }], stream: false })
     });
-    const data = await res.json();
-    return data.message.content;
+    return (await res.json()).message.content;
   };
 
   const generateCustomTests = async () => {
@@ -321,7 +428,7 @@ export default function App() {
     if (!axUrl.trim() || axLoading) return;
     setAxLoading(true); setAxStatus("Running accessibility audit…"); setAxReport(null);
     try {
-      const content = await callAI(ACCESSIBILITY_SYSTEM, `Perform a comprehensive accessibility audit for: ${axUrl}\n\nEvaluate against WCAG 2.1 and Apple Human Interface Guidelines. Be specific and realistic.`);
+      const content = await callAI(ACCESSIBILITY_SYSTEM, `Perform a comprehensive accessibility audit for: ${axUrl}`);
       const match = content.match(/\{[\s\S]*\}/);
       if (match) { setAxReport(JSON.parse(match[0])); setAxStatus(""); }
       else setAxStatus("Error parsing — try again");
@@ -353,6 +460,20 @@ export default function App() {
     setMatrixLoading(false);
   };
 
+  const generateRegressionPlan = async () => {
+    if (!regressionDesc.trim() || regressionLoading) return;
+    setRegressionLoading(true); setRegressionStatus("Analyzing change impact…"); setRegressionReport(null); setRegressionResults({});
+    try {
+      const content = await callAI(REGRESSION_SYSTEM, `Generate a regression test plan for this change:\n\n${regressionDesc}`);
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) { setRegressionReport(JSON.parse(match[0])); setRegressionStatus(""); }
+      else setRegressionStatus("Error parsing — try again");
+    } catch { setRegressionStatus("Error — is Ollama running?"); }
+    setRegressionLoading(false);
+  };
+
+  const markRegressionTest = (id, status) => setRegressionResults(p => ({ ...p, [id]: status }));
+
   const copyToClipboard = (text, id) => { navigator.clipboard.writeText(text); setCopied(id); setTimeout(() => setCopied(null), 2000); };
 
   const getStats = (tests, results) => {
@@ -365,21 +486,18 @@ export default function App() {
   const statColor = (s) => ({ pass: "#34c759", fail: "#ff3b30" })[s] || "#8e8e93";
   const gradeColor = (g) => ({ A: "#34c759", B: "#0071e3", C: "#ff9500", D: "#ff3b30", F: "#ff3b30" })[g] || "#8e8e93";
   const coverageColor = (c) => ({ required: "#34c759", recommended: "#0071e3", optional: "#ff9500", "not applicable": "#e5e5ea" })[c] || "#8e8e93";
+  const riskColor = (r) => ({ Critical: "#ff3b30", High: "#ff9500", Medium: "#ffcc00", Low: "#34c759" })[r] || "#8e8e93";
 
   const C = {
     wrap: { display: "flex", height: "100vh", background: "#f5f5f7", fontFamily: "-apple-system, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', sans-serif", color: "#1d1d1f" },
     sidebar: { width: "220px", background: "rgba(255,255,255,0.72)", backdropFilter: "blur(20px)", borderRight: "0.5px solid rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", flexShrink: 0 },
-    sidebarTop: { padding: "20px 16px 12px" },
-    appMark: { marginBottom: "20px" },
+    sidebarTop: { padding: "20px 16px 12px", flex: 1, overflowY: "auto" },
     navSection: { fontSize: "10px", color: "#8e8e93", fontWeight: 600, letterSpacing: "0.06em", padding: "0 16px", marginBottom: "4px", textTransform: "uppercase" },
     navItem: (active) => ({ display: "flex", alignItems: "center", gap: "8px", padding: "7px 12px", margin: "0 4px", borderRadius: "8px", cursor: "pointer", background: active ? "rgba(0,113,227,0.1)" : "transparent", color: active ? "#0071e3" : "#1d1d1f", fontSize: "13px", fontWeight: active ? 500 : 400, transition: "all 0.15s" }),
     navIcon: { fontSize: "12px", width: "16px", textAlign: "center" },
     sidebarDivider: { height: "0.5px", background: "rgba(0,0,0,0.08)", margin: "8px 16px" },
-    sidebarFooter: { marginTop: "auto", padding: "12px 16px 20px" },
+    sidebarFooter: { padding: "12px 16px 20px", borderTop: "0.5px solid rgba(0,0,0,0.06)" },
     sessionCard: { background: "rgba(0,113,227,0.06)", border: "0.5px solid rgba(0,113,227,0.15)", borderRadius: "10px", padding: "10px 12px" },
-    sessionLabel: { fontSize: "10px", color: "#0071e3", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "4px" },
-    sessionName: { fontSize: "12px", fontWeight: 600, color: "#1d1d1f", marginBottom: "3px" },
-    sessionStats: { fontSize: "11px", color: "#8e8e93" },
     main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
     topbar: { height: "52px", background: "rgba(255,255,255,0.72)", backdropFilter: "blur(20px)", borderBottom: "0.5px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", padding: "0 24px", gap: "10px", flexShrink: 0 },
     topbarTitle: { fontSize: "13px", fontWeight: 600, color: "#1d1d1f", letterSpacing: "-0.01em" },
@@ -387,32 +505,29 @@ export default function App() {
     topbarActions: { marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" },
     content: { flex: 1, overflowY: "auto", padding: "28px 32px" },
     heroTitle: { fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: "#1d1d1f", marginBottom: "6px" },
-    heroSub: { fontSize: "15px", color: "#6e6e73", marginBottom: "28px", fontWeight: 400 },
-    grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "10px" },
+    heroSub: { fontSize: "15px", color: "#6e6e73", marginBottom: "28px" },
+    grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "10px" },
     appCard: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "16px", padding: "20px 16px", cursor: "pointer", transition: "all 0.2s", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
-    tag: (color) => ({ display: "inline-flex", alignItems: "center", padding: "2px 7px", borderRadius: "4px", background: color + "15", color, fontSize: "10px", fontWeight: 600, letterSpacing: "0.02em" }),
+    tag: (color) => ({ display: "inline-flex", alignItems: "center", padding: "2px 7px", borderRadius: "4px", background: color + "15", color, fontSize: "10px", fontWeight: 600 }),
     statRow: { display: "flex", gap: "8px", marginBottom: "20px" },
     statBox: (color) => ({ flex: 1, background: "#fff", border: `0.5px solid ${color}30`, borderRadius: "10px", padding: "12px 14px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }),
     statNum: (color) => ({ fontSize: "24px", fontWeight: 700, color, letterSpacing: "-0.02em", lineHeight: 1 }),
     statLabel: { fontSize: "11px", color: "#8e8e93", marginTop: "2px" },
-    card: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", padding: "14px 18px", marginBottom: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", transition: "all 0.15s" },
-    testId: { fontSize: "10px", color: "#8e8e93", fontFamily: "SF Mono, Monaco, monospace", letterSpacing: "0.04em" },
+    card: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", padding: "14px 18px", marginBottom: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+    testId: { fontSize: "10px", color: "#8e8e93", fontFamily: "SF Mono, Monaco, monospace" },
     testTitle: { fontSize: "14px", fontWeight: 500, color: "#1d1d1f", margin: "4px 0", letterSpacing: "-0.01em" },
     testExpected: { fontSize: "12px", color: "#6e6e73" },
-    btn: (bg, text, small) => ({ padding: small ? "5px 11px" : "8px 16px", borderRadius: "8px", background: bg, color: text || "#fff", border: "none", cursor: "pointer", fontSize: small ? "11px" : "13px", fontWeight: 500, letterSpacing: "-0.01em", transition: "opacity 0.15s", whiteSpace: "nowrap" }),
+    btn: (bg, text, small) => ({ padding: small ? "5px 11px" : "8px 16px", borderRadius: "8px", background: bg, color: text || "#fff", border: "none", cursor: "pointer", fontSize: small ? "11px" : "13px", fontWeight: 500, transition: "opacity 0.15s", whiteSpace: "nowrap" }),
     outlineBtn: (color) => ({ padding: "5px 11px", borderRadius: "8px", background: "transparent", color, border: `0.5px solid ${color}`, cursor: "pointer", fontSize: "11px", fontWeight: 500 }),
     inputWrap: { marginBottom: "14px" },
     inputLabel: { fontSize: "11px", color: "#6e6e73", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "6px", display: "block" },
     input: { width: "100%", background: "#fff", border: "0.5px solid rgba(0,0,0,0.15)", borderRadius: "8px", color: "#1d1d1f", padding: "10px 12px", fontSize: "14px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" },
     textarea: { width: "100%", background: "#fff", border: "0.5px solid rgba(0,0,0,0.15)", borderRadius: "8px", color: "#1d1d1f", padding: "10px 12px", fontSize: "14px", outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" },
     formCard: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "16px", padding: "24px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" },
-    radarCard: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", padding: "16px 20px", marginBottom: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
     radarPre: { fontSize: "11px", color: "#1d1d1f", whiteSpace: "pre-wrap", fontFamily: "SF Mono, Monaco, monospace", background: "#f5f5f7", padding: "14px", borderRadius: "8px", lineHeight: 1.65, marginTop: "10px" },
     emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "#8e8e93", textAlign: "center" },
     statusDot: (color) => ({ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }),
     infoRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 16px", background: "#fff", borderRadius: "8px", marginBottom: "6px", border: "0.5px solid rgba(0,0,0,0.06)" },
-    infoKey: { fontSize: "12px", color: "#6e6e73", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 500 },
-    infoVal: { fontSize: "12px", color: "#1d1d1f", fontFamily: "SF Mono, Monaco, monospace" },
   };
 
   const renderTestCard = (test, result, onMark) => (
@@ -428,23 +543,19 @@ export default function App() {
           <div style={C.testTitle}>{test.title}</div>
           <div style={C.testExpected}>Expected: {test.expected}</div>
         </div>
-        <div style={{ display: "flex", gap: "6px", flexShrink: 0, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
           {!result ? (
             <>
               <button onClick={() => onMark(test.id, "pass")} style={C.btn("#34c759", "#fff", true)}>Pass</button>
               <button onClick={() => onMark(test.id, "fail")} style={C.btn("#ff3b30", "#fff", true)}>Fail</button>
             </>
-          ) : (
-            <span style={{ fontSize: "12px", color: statColor(result.status), fontWeight: 600 }}>
-              {result.status === "pass" ? "✓ Passed" : "✗ Failed"}
-            </span>
-          )}
+          ) : <span style={{ fontSize: "12px", color: statColor(result.status), fontWeight: 600 }}>{result.status === "pass" ? "✓ Passed" : "✗ Failed"}</span>}
         </div>
       </div>
       <details style={{ marginTop: "8px" }}>
-        <summary style={{ fontSize: "11px", color: "#8e8e93", cursor: "pointer", userSelect: "none" }}>Steps to reproduce ({test.steps.length})</summary>
+        <summary style={{ fontSize: "11px", color: "#8e8e93", cursor: "pointer" }}>Steps ({test.steps.length})</summary>
         <div style={{ marginTop: "6px", paddingLeft: "8px", borderLeft: "2px solid #e5e5ea" }}>
-          {test.steps.map((step, i) => <div key={i} style={{ fontSize: "12px", color: "#6e6e73", padding: "2px 0" }}>{i + 1}. {step}</div>)}
+          {test.steps.map((s, i) => <div key={i} style={{ fontSize: "12px", color: "#6e6e73", padding: "2px 0" }}>{i + 1}. {s}</div>)}
         </div>
       </details>
     </div>
@@ -474,11 +585,11 @@ export default function App() {
       <div style={C.content}>
         <div style={{ maxWidth: "580px" }}>
           <div style={C.formCard}>
-            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "4px" }}>File Radar Bug Report</div>
-            <div style={{ fontSize: "13px", color: "#6e6e73", marginBottom: "20px" }}>This generates a formatted Radar report added to your portfolio.</div>
+            <div style={{ fontSize: "17px", fontWeight: 700, marginBottom: "4px" }}>File Radar Bug Report</div>
+            <div style={{ fontSize: "13px", color: "#6e6e73", marginBottom: "20px" }}>Generates a formatted Radar report added to your portfolio.</div>
             <div style={C.inputWrap}>
               <label style={C.inputLabel}>Actual Result *</label>
-              <textarea value={form.actualResult} onChange={e => setForm(p => ({ ...p, actualResult: e.target.value }))} placeholder="Describe what actually happened…" rows={3} style={C.textarea} />
+              <textarea value={form.actualResult} onChange={e => setForm(p => ({ ...p, actualResult: e.target.value }))} placeholder="What actually happened?" rows={3} style={C.textarea} />
             </div>
             <div style={C.inputWrap}>
               <label style={C.inputLabel}>Severity</label>
@@ -489,7 +600,7 @@ export default function App() {
             </div>
             <div style={C.inputWrap}>
               <label style={C.inputLabel}>Impact</label>
-              <textarea value={form.impact} onChange={e => setForm(p => ({ ...p, impact: e.target.value }))} placeholder="Who is affected and how severely?" rows={2} style={C.textarea} />
+              <textarea value={form.impact} onChange={e => setForm(p => ({ ...p, impact: e.target.value }))} placeholder="Who is affected?" rows={2} style={C.textarea} />
             </div>
             <div style={C.inputWrap}>
               <label style={C.inputLabel}>Possible Root Cause</label>
@@ -497,9 +608,9 @@ export default function App() {
             </div>
             <div style={C.inputWrap}>
               <label style={C.inputLabel}>Regression (optional)</label>
-              <input value={form.regression} onChange={e => setForm(p => ({ ...p, regression: e.target.value }))} placeholder="e.g. Worked in previous build, broken in 26.5" style={C.input} />
+              <input value={form.regression} onChange={e => setForm(p => ({ ...p, regression: e.target.value }))} placeholder="e.g. Worked in previous build" style={C.input} />
             </div>
-            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
               <button onClick={onSubmit} disabled={!form.actualResult.trim()} style={{ ...C.btn("#0071e3", "#fff"), opacity: !form.actualResult.trim() ? 0.3 : 1 }}>File Radar</button>
               <button onClick={onCancel} style={C.btn("#f5f5f7", "#1d1d1f")}>Cancel</button>
             </div>
@@ -508,16 +619,6 @@ export default function App() {
       </div>
     </>
   );
-
-  const navItems = [
-    { id: "home", label: "App Library", icon: "⊞" },
-    { id: "custom", label: "Custom App", icon: "+" },
-    { id: "accessibility", label: "Accessibility Audit", icon: "◎" },
-    { id: "buildnotes", label: "Build Notes Parser", icon: "≡" },
-    { id: "matrix", label: "Test Matrix", icon: "⊟" },
-    { id: "radars", label: "Radar Portfolio", icon: "◈", badge: radars.length },
-    { id: "system", label: "System Info", icon: "⌥" }
-  ];
 
   const activeNav = ["home", "testplan", "failureform"].includes(screen) ? "home" :
     ["custom", "customtests", "customfailure"].includes(screen) ? "custom" : screen;
@@ -542,7 +643,7 @@ export default function App() {
       {/* Sidebar */}
       <div style={C.sidebar}>
         <div style={C.sidebarTop}>
-          <div style={C.appMark}>
+          <div style={{ marginBottom: "20px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "1px" }}>
               <span style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.04em", color: "#0071e3" }}>AI</span>
               <span style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.04em", color: "#1d1d1f" }}>dria</span>
@@ -552,25 +653,34 @@ export default function App() {
           </div>
 
           <div style={C.navSection}>Testing</div>
-          {navItems.slice(0, 2).map(item => (
+          {[
+            { id: "home", label: "App Library", icon: "⊞" },
+            { id: "custom", label: "Custom App", icon: "+" }
+          ].map(item => (
             <div key={item.id} className="nav-item" style={C.navItem(activeNav === item.id)} onClick={() => setScreen(item.id)}>
-              <span style={C.navIcon}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={C.navIcon}>{item.icon}</span><span>{item.label}</span>
             </div>
           ))}
 
-          <div style={{ ...C.sidebarDivider, margin: "8px 16px" }} />
+          <div style={C.sidebarDivider} />
           <div style={C.navSection}>Tools</div>
-          {navItems.slice(2, 5).map(item => (
+          {[
+            { id: "accessibility", label: "Accessibility Audit", icon: "◎" },
+            { id: "buildnotes", label: "Build Notes Parser", icon: "≡" },
+            { id: "matrix", label: "Test Matrix", icon: "⊟" },
+            { id: "regression", label: "Regression Tracker", icon: "↺" }
+          ].map(item => (
             <div key={item.id} className="nav-item" style={C.navItem(activeNav === item.id)} onClick={() => setScreen(item.id)}>
-              <span style={C.navIcon}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={C.navIcon}>{item.icon}</span><span>{item.label}</span>
             </div>
           ))}
 
-          <div style={{ ...C.sidebarDivider, margin: "8px 16px" }} />
+          <div style={C.sidebarDivider} />
           <div style={C.navSection}>Reports</div>
-          {navItems.slice(5).map(item => (
+          {[
+            { id: "radars", label: "Radar Portfolio", icon: "◈", badge: radars.length },
+            { id: "system", label: "System Info", icon: "⌥" }
+          ].map(item => (
             <div key={item.id} className="nav-item" style={C.navItem(activeNav === item.id)} onClick={() => setScreen(item.id)}>
               <span style={C.navIcon}>{item.icon}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
@@ -582,9 +692,9 @@ export default function App() {
         <div style={C.sidebarFooter}>
           {sessionStats && (
             <div style={C.sessionCard}>
-              <div style={C.sessionLabel}>Active Session</div>
-              <div style={C.sessionName}>{isCustomSession ? customApp.name : APP_TEST_PLANS[selectedApp]?.name}</div>
-              <div style={C.sessionStats}>{sessionStats.passed} passed · {sessionStats.failed} failed · {sessionStats.pending} pending</div>
+              <div style={{ fontSize: "10px", color: "#0071e3", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "4px" }}>Active Session</div>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: "#1d1d1f", marginBottom: "3px" }}>{isCustomSession ? customApp.name : APP_TEST_PLANS[selectedApp]?.name}</div>
+              <div style={{ fontSize: "11px", color: "#8e8e93" }}>{sessionStats.passed} passed · {sessionStats.failed} failed · {sessionStats.pending} pending</div>
             </div>
           )}
         </div>
@@ -599,7 +709,7 @@ export default function App() {
             <div style={C.topbar}>
               <div style={C.statusDot("#34c759")} />
               <span style={C.topbarTitle}>App Library</span>
-              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#8e8e93" }}>Select an app to begin testing</span>
+              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#8e8e93" }}>{Object.keys(APP_TEST_PLANS).length} apps · {Object.values(APP_TEST_PLANS).reduce((a, app) => a + app.tests.length, 0)} tests</span>
             </div>
             <div style={C.content}>
               <div style={{ animation: "fadeIn 0.3s ease" }}>
@@ -609,10 +719,10 @@ export default function App() {
                   {Object.entries(APP_TEST_PLANS).map(([key, app]) => (
                     <div key={key} className="app-card" style={C.appCard} onClick={() => selectApp(key)}>
                       <div style={{ fontSize: "32px", marginBottom: "10px" }}>{app.icon}</div>
-                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#1d1d1f", marginBottom: "3px", letterSpacing: "-0.01em" }}>{app.name}</div>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#1d1d1f", marginBottom: "3px" }}>{app.name}</div>
                       <div style={{ fontSize: "11px", color: "#8e8e93", marginBottom: "10px" }}>v{app.version} · {app.tests.length} tests</div>
                       <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center" }}>
-                        {app.areas.slice(0, 3).map(a => <span key={a} style={{ fontSize: "10px", color: "#8e8e93", background: "#f5f5f7", padding: "2px 6px", borderRadius: "4px" }}>{a}</span>)}
+                        {app.areas.slice(0, 2).map(a => <span key={a} style={{ fontSize: "10px", color: "#8e8e93", background: "#f5f5f7", padding: "2px 6px", borderRadius: "4px" }}>{a}</span>)}
                       </div>
                     </div>
                   ))}
@@ -630,7 +740,7 @@ export default function App() {
             <>
               <div style={C.topbar}>
                 <div style={C.statusDot("#0071e3")} />
-                <span style={C.topbarTitle}>{app.name}</span>
+                <span style={C.topbarTitle}>{app.icon} {app.name}</span>
                 <span style={{ ...C.topbarSub, marginLeft: "6px" }}>Test Plan · v{app.version}</span>
                 <div style={C.topbarActions}>
                   {st.failed > 0 && <button onClick={() => setScreen("radars")} style={C.outlineBtn("#ff3b30")}>Radars ({st.failed})</button>}
@@ -703,7 +813,7 @@ export default function App() {
               </div>
               <div style={C.content}>
                 <div style={{ background: "#0071e315", border: "0.5px solid #0071e330", borderRadius: "10px", padding: "10px 14px", marginBottom: "16px", fontSize: "12px", color: "#0071e3" }}>
-                  <strong>AI Generated</strong> · {customApp.name} {customApp.version} · {customApp.description.slice(0, 100)}…
+                  <strong>AI Generated</strong> · {customApp.name} {customApp.version}
                 </div>
                 {renderStats(customTests, customResults)}
                 {customTests.map(test => renderTestCard(test, customResults[test.id], markCustomTest))}
@@ -729,7 +839,7 @@ export default function App() {
             <div style={C.content}>
               <div style={{ maxWidth: "720px", animation: "fadeIn 0.3s ease" }}>
                 <div style={C.heroTitle}>Accessibility Audit Runner</div>
-                <div style={C.heroSub}>Enter a URL or app description to receive a detailed WCAG 2.1 and Apple HIG accessibility audit report.</div>
+                <div style={C.heroSub}>Enter a URL or app description to receive a detailed WCAG 2.1 and Apple HIG audit report.</div>
                 <div style={C.formCard}>
                   <div style={C.inputWrap}>
                     <label style={C.inputLabel}>URL or App Description *</label>
@@ -739,33 +849,28 @@ export default function App() {
                     {axLoading ? axStatus : "Run Accessibility Audit"}
                   </button>
                 </div>
-
                 {axReport && (
                   <div style={{ marginTop: "20px", animation: "fadeIn 0.3s ease" }}>
-                    {/* Score */}
                     <div style={{ ...C.formCard, display: "flex", alignItems: "center", gap: "20px", marginBottom: "16px" }}>
                       <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: "48px", fontWeight: 800, color: gradeColor(axReport.grade), letterSpacing: "-0.03em", lineHeight: 1 }}>{axReport.grade}</div>
+                        <div style={{ fontSize: "48px", fontWeight: 800, color: gradeColor(axReport.grade), lineHeight: 1 }}>{axReport.grade}</div>
                         <div style={{ fontSize: "11px", color: "#8e8e93", marginTop: "2px" }}>Grade</div>
                       </div>
                       <div style={{ width: "0.5px", height: "48px", background: "#e5e5ea" }} />
                       <div>
-                        <div style={{ fontSize: "32px", fontWeight: 700, color: gradeColor(axReport.grade), letterSpacing: "-0.02em", lineHeight: 1 }}>{axReport.score}/100</div>
+                        <div style={{ fontSize: "32px", fontWeight: 700, color: gradeColor(axReport.grade), lineHeight: 1 }}>{axReport.score}/100</div>
                         <div style={{ fontSize: "13px", color: "#6e6e73", marginTop: "4px" }}>{axReport.summary}</div>
                       </div>
                     </div>
-
-                    {/* Violations */}
                     {axReport.violations?.length > 0 && (
                       <div style={{ marginBottom: "16px" }}>
-                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#ff3b30", marginBottom: "8px", letterSpacing: "-0.01em" }}>✗ Violations ({axReport.violations.length})</div>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#ff3b30", marginBottom: "8px" }}>✗ Violations ({axReport.violations.length})</div>
                         {axReport.violations.map(v => (
                           <div key={v.id} style={{ ...C.card, borderLeft: `3px solid ${sevColor(v.severity)}` }}>
-                            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: "6px", marginBottom: "6px", flexWrap: "wrap" }}>
                               <span style={C.testId}>{v.id}</span>
                               <span style={C.tag(sevColor(v.severity))}>{v.severity}</span>
                               <span style={C.tag("#0071e3")}>WCAG {v.wcag}</span>
-                              <span style={C.tag("#8e8e93")}>Level {v.level}</span>
                               <span style={{ fontSize: "11px", color: "#8e8e93" }}>{v.element}</span>
                             </div>
                             <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "4px" }}>{v.issue}</div>
@@ -775,8 +880,6 @@ export default function App() {
                         ))}
                       </div>
                     )}
-
-                    {/* Passes */}
                     {axReport.passes?.length > 0 && (
                       <div style={{ marginBottom: "16px" }}>
                         <div style={{ fontSize: "13px", fontWeight: 600, color: "#34c759", marginBottom: "8px" }}>✓ Passing ({axReport.passes.length})</div>
@@ -788,15 +891,12 @@ export default function App() {
                         ))}
                       </div>
                     )}
-
-                    {/* Recommendations */}
                     {axReport.recommendations?.length > 0 && (
                       <div style={C.formCard}>
                         <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "10px" }}>Top Recommendations</div>
                         {axReport.recommendations.map((r, i) => (
-                          <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "6px", fontSize: "13px", color: "#1d1d1f" }}>
-                            <span style={{ color: "#0071e3", fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
-                            <span>{r}</span>
+                          <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "6px", fontSize: "13px" }}>
+                            <span style={{ color: "#0071e3", fontWeight: 700 }}>{i + 1}.</span><span>{r}</span>
                           </div>
                         ))}
                       </div>
@@ -822,28 +922,24 @@ export default function App() {
                 <div style={C.heroSub}>Paste Apple release notes or feature descriptions. AI generates test cases for every new feature automatically.</div>
                 <div style={C.formCard}>
                   <div style={C.inputWrap}>
-                    <label style={C.inputLabel}>Release Notes or Feature Description *</label>
-                    <textarea value={buildNotes} onChange={e => setBuildNotes(e.target.value)} placeholder={`Paste release notes here. Example:\n\niOS 18.4 Release Notes\n• Mail now supports rich text formatting in replies\n• Safari adds new Tab Groups sync across devices\n• Messages adds new emoji reactions\n• Calendar adds travel time suggestions`} rows={8} style={C.textarea} />
+                    <label style={C.inputLabel}>Release Notes *</label>
+                    <textarea value={buildNotes} onChange={e => setBuildNotes(e.target.value)} placeholder={`Paste release notes here. Example:\n\niOS 18.4 Release Notes\n• Mail now supports rich text formatting\n• Safari adds Tab Groups sync\n• Messages adds new emoji reactions`} rows={8} style={C.textarea} />
                   </div>
                   <button onClick={parseBuildNotes} disabled={buildLoading || !buildNotes.trim()} style={{ ...C.btn("#ff9500", "#fff"), opacity: (buildLoading || !buildNotes.trim()) ? 0.3 : 1 }}>
                     {buildLoading ? buildStatus : "Parse & Generate Test Cases"}
                   </button>
                 </div>
-
                 {buildReport && (
                   <div style={{ marginTop: "20px", animation: "fadeIn 0.3s ease" }}>
-                    <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "16px", letterSpacing: "-0.02em" }}>
-                      Generated Test Cases · {buildReport.version}
-                      <span style={{ fontSize: "12px", color: "#8e8e93", fontWeight: 400, marginLeft: "8px" }}>
-                        {buildReport.features?.reduce((acc, f) => acc + f.testCases.length, 0)} total tests
-                      </span>
+                    <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "16px" }}>
+                      {buildReport.version} · {buildReport.features?.reduce((a, f) => a + f.testCases.length, 0)} test cases generated
                     </div>
                     {buildReport.features?.map((feature, fi) => (
                       <div key={fi} style={{ marginBottom: "20px" }}>
-                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#ff9500", marginBottom: "8px", letterSpacing: "-0.01em" }}>{feature.name}</div>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#ff9500", marginBottom: "8px" }}>{feature.name}</div>
                         {feature.testCases.map(test => (
                           <div key={test.id} style={{ ...C.card, borderLeft: `3px solid ${sevColor(test.severity)}` }}>
-                            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: "6px", marginBottom: "4px", flexWrap: "wrap" }}>
                               <span style={C.testId}>{test.id}</span>
                               <span style={C.tag(sevColor(test.severity))}>{test.severity}</span>
                               <span style={{ fontSize: "11px", color: "#8e8e93" }}>{test.area}</span>
@@ -878,26 +974,25 @@ export default function App() {
             <div style={C.content}>
               <div style={{ maxWidth: "900px", animation: "fadeIn 0.3s ease" }}>
                 <div style={C.heroTitle}>Test Matrix Builder</div>
-                <div style={C.heroSub}>List your features and AI maps them across Apple devices and OS versions, showing required vs optional test coverage.</div>
+                <div style={C.heroSub}>List your features and AI maps coverage across Apple devices.</div>
                 <div style={C.formCard}>
                   <div style={C.inputWrap}>
                     <label style={C.inputLabel}>Features to Test *</label>
-                    <textarea value={matrixFeatures} onChange={e => setMatrixFeatures(e.target.value)} placeholder={`List features one per line. Example:\nUser login with Face ID\nPush notifications\nDark mode support\niCloud sync\nVoiceOver accessibility\nLandscape orientation`} rows={7} style={C.textarea} />
+                    <textarea value={matrixFeatures} onChange={e => setMatrixFeatures(e.target.value)} placeholder={`List features one per line:\nUser login with Face ID\nPush notifications\nDark mode support`} rows={6} style={C.textarea} />
                   </div>
                   <button onClick={generateMatrix} disabled={matrixLoading || !matrixFeatures.trim()} style={{ ...C.btn("#0071e3", "#fff"), opacity: (matrixLoading || !matrixFeatures.trim()) ? 0.3 : 1 }}>
                     {matrixLoading ? matrixStatus : "Build Test Matrix"}
                   </button>
                 </div>
-
                 {matrixReport && (
                   <div style={{ marginTop: "20px", animation: "fadeIn 0.3s ease", overflowX: "auto" }}>
-                    <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "16px", letterSpacing: "-0.02em" }}>Test Coverage Matrix</div>
-                    <div style={{ background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                    <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "16px" }}>Test Coverage Matrix</div>
+                    <div style={{ background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", overflow: "hidden" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                         <thead>
                           <tr style={{ background: "#f5f5f7" }}>
                             <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: "#1d1d1f", borderBottom: "0.5px solid rgba(0,0,0,0.08)", fontSize: "11px" }}>Feature</th>
-                            <th style={{ padding: "10px 10px", textAlign: "center", fontWeight: 600, color: "#6e6e73", borderBottom: "0.5px solid rgba(0,0,0,0.08)", fontSize: "11px" }}>Priority</th>
+                            <th style={{ padding: "10px", textAlign: "center", fontWeight: 600, color: "#6e6e73", borderBottom: "0.5px solid rgba(0,0,0,0.08)", fontSize: "11px" }}>Priority</th>
                             {matrixReport.devices?.map(d => (
                               <th key={d} style={{ padding: "10px 8px", textAlign: "center", fontWeight: 600, color: "#6e6e73", borderBottom: "0.5px solid rgba(0,0,0,0.08)", fontSize: "10px", minWidth: "80px" }}>{d}</th>
                             ))}
@@ -906,20 +1001,14 @@ export default function App() {
                         <tbody>
                           {matrixReport.features?.map((feature, i) => (
                             <tr key={i} style={{ borderBottom: "0.5px solid rgba(0,0,0,0.05)" }}>
-                              <td style={{ padding: "10px 14px", fontWeight: 500, color: "#1d1d1f" }}>
-                                {feature.name}
-                                {feature.notes && <div style={{ fontSize: "10px", color: "#8e8e93", marginTop: "2px" }}>{feature.notes}</div>}
-                              </td>
-                              <td style={{ padding: "10px", textAlign: "center" }}>
-                                <span style={C.tag(sevColor(feature.priority))}>{feature.priority}</span>
-                              </td>
+                              <td style={{ padding: "10px 14px", fontWeight: 500 }}>{feature.name}</td>
+                              <td style={{ padding: "10px", textAlign: "center" }}><span style={C.tag(sevColor(feature.priority))}>{feature.priority}</span></td>
                               {matrixReport.devices?.map(d => {
-                                const coverage = feature.coverage?.[d] || "not applicable";
-                                const color = coverageColor(coverage);
+                                const cov = feature.coverage?.[d] || "not applicable";
                                 return (
                                   <td key={d} style={{ padding: "10px 8px", textAlign: "center" }}>
-                                    <span style={{ fontSize: "10px", color, fontWeight: 600 }}>
-                                      {coverage === "required" ? "●" : coverage === "recommended" ? "◐" : coverage === "optional" ? "○" : "—"}
+                                    <span style={{ fontSize: "14px", color: coverageColor(cov) }}>
+                                      {cov === "required" ? "●" : cov === "recommended" ? "◐" : cov === "optional" ? "○" : "—"}
                                     </span>
                                   </td>
                                 );
@@ -932,9 +1021,122 @@ export default function App() {
                         <span><span style={{ color: "#34c759" }}>●</span> Required</span>
                         <span><span style={{ color: "#0071e3" }}>◐</span> Recommended</span>
                         <span><span style={{ color: "#ff9500" }}>○</span> Optional</span>
-                        <span>— Not Applicable</span>
+                        <span>— N/A</span>
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Regression Tracker */}
+        {screen === "regression" && (
+          <>
+            <div style={C.topbar}>
+              <div style={C.statusDot("#ff9500")} />
+              <span style={C.topbarTitle}>Regression Test Tracker</span>
+              {regressionStatus && <span style={{ fontSize: "12px", color: "#ff9500", marginLeft: "8px" }}>{regressionStatus}</span>}
+            </div>
+            <div style={C.content}>
+              <div style={{ maxWidth: "720px", animation: "fadeIn 0.3s ease" }}>
+                <div style={C.heroTitle}>Regression Test Tracker</div>
+                <div style={C.heroSub}>Describe a code change or new build. AI identifies which tests need to be re-run to prevent regressions.</div>
+                <div style={C.formCard}>
+                  <div style={C.inputWrap}>
+                    <label style={C.inputLabel}>Code Change or Build Description *</label>
+                    <textarea value={regressionDesc} onChange={e => setRegressionDesc(e.target.value)} placeholder={`Describe what changed in this build. Example:\n\nBuild 26.5.1 changes:\n- Refactored Mail compose window UI\n- Updated Safari tab management logic\n- Fixed crash in Messages when sending large attachments\n- Changed authentication token refresh timing`} rows={7} style={C.textarea} />
+                  </div>
+                  <button onClick={generateRegressionPlan} disabled={regressionLoading || !regressionDesc.trim()} style={{ ...C.btn("#ff9500", "#fff"), opacity: (regressionLoading || !regressionDesc.trim()) ? 0.3 : 1 }}>
+                    {regressionLoading ? regressionStatus : "Generate Regression Plan"}
+                  </button>
+                </div>
+
+                {regressionReport && (
+                  <div style={{ marginTop: "20px", animation: "fadeIn 0.3s ease" }}>
+                    {/* Risk Summary */}
+                    <div style={{ ...C.formCard, marginBottom: "16px", display: "flex", gap: "20px", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: "11px", color: "#8e8e93", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Risk Level</div>
+                        <div style={{ fontSize: "24px", fontWeight: 700, color: riskColor(regressionReport.riskLevel) }}>{regressionReport.riskLevel}</div>
+                      </div>
+                      <div style={{ width: "0.5px", height: "40px", background: "#e5e5ea" }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "11px", color: "#8e8e93", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Change Summary</div>
+                        <div style={{ fontSize: "13px", color: "#1d1d1f" }}>{regressionReport.changeDescription}</div>
+                      </div>
+                    </div>
+
+                    {/* Impacted Areas */}
+                    {regressionReport.impactedAreas?.length > 0 && (
+                      <div style={{ marginBottom: "16px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px" }}>Impacted Areas</div>
+                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                          {regressionReport.impactedAreas.map((area, i) => (
+                            <span key={i} style={C.tag("#ff9500")}>{area}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Regression Tests */}
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600 }}>Tests to Re-Run ({regressionReport.regressionTests?.length})</div>
+                        <div style={{ fontSize: "11px", color: "#8e8e93" }}>
+                          {Object.values(regressionResults).filter(r => r === "pass").length} passed ·{" "}
+                          {Object.values(regressionResults).filter(r => r === "fail").length} failed ·{" "}
+                          {(regressionReport.regressionTests?.length || 0) - Object.keys(regressionResults).length} pending
+                        </div>
+                      </div>
+                      {regressionReport.regressionTests?.map(test => {
+                        const result = regressionResults[test.id];
+                        return (
+                          <div key={test.id} style={{ ...C.card, borderLeft: `3px solid ${result ? (result === "pass" ? "#34c759" : "#ff3b30") : sevColor(test.severity)}` }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: "flex", gap: "6px", marginBottom: "4px", flexWrap: "wrap" }}>
+                                  <span style={C.testId}>{test.id}</span>
+                                  <span style={C.tag(sevColor(test.severity))}>{test.severity}</span>
+                                  <span style={C.tag("#ff9500")}>{test.priority}</span>
+                                  <span style={{ fontSize: "11px", color: "#8e8e93" }}>{test.area}</span>
+                                </div>
+                                <div style={C.testTitle}>{test.title}</div>
+                                <div style={{ fontSize: "12px", color: "#ff9500", marginBottom: "2px" }}>Why: {test.reason}</div>
+                                <div style={C.testExpected}>Expected: {test.expected}</div>
+                              </div>
+                              <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                                {!result ? (
+                                  <>
+                                    <button onClick={() => markRegressionTest(test.id, "pass")} style={C.btn("#34c759", "#fff", true)}>Pass</button>
+                                    <button onClick={() => markRegressionTest(test.id, "fail")} style={C.btn("#ff3b30", "#fff", true)}>Fail</button>
+                                  </>
+                                ) : (
+                                  <span style={{ fontSize: "12px", color: result === "pass" ? "#34c759" : "#ff3b30", fontWeight: 600 }}>
+                                    {result === "pass" ? "✓ Passed" : "✗ Failed"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <details style={{ marginTop: "8px" }}>
+                              <summary style={{ fontSize: "11px", color: "#8e8e93", cursor: "pointer" }}>Steps ({test.steps.length})</summary>
+                              <div style={{ marginTop: "6px", paddingLeft: "8px", borderLeft: "2px solid #e5e5ea" }}>
+                                {test.steps.map((s, i) => <div key={i} style={{ fontSize: "12px", color: "#6e6e73", padding: "2px 0" }}>{i + 1}. {s}</div>)}
+                              </div>
+                            </details>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Recommendation */}
+                    {regressionReport.recommendation && (
+                      <div style={{ ...C.formCard, background: "#fff9f0", border: "0.5px solid #ff950030" }}>
+                        <div style={{ fontSize: "11px", color: "#ff9500", fontWeight: 600, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.04em" }}>QA Recommendation</div>
+                        <div style={{ fontSize: "13px", color: "#1d1d1f" }}>{regressionReport.recommendation}</div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -958,7 +1160,7 @@ export default function App() {
                   <div style={{ fontSize: "13px" }}>Run tests and mark failures to generate Radar reports</div>
                 </div>
               ) : radars.map(radar => (
-                <div key={radar.id} style={C.radarCard}>
+                <div key={radar.id} style={{ ...C.card, padding: "16px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                     <span style={C.tag(sevColor(radar.severity))}>{radar.severity}</span>
                     <span style={{ fontSize: "11px", color: "#0071e3", fontFamily: "SF Mono, Monaco, monospace", fontWeight: 600 }}>{radar.id}</span>
@@ -967,11 +1169,11 @@ export default function App() {
                       {copied === radar.id ? "✓ Copied" : "Copy Report"}
                     </button>
                   </div>
-                  <div style={{ fontSize: "14px", fontWeight: 500, color: "#1d1d1f", marginBottom: "8px", letterSpacing: "-0.01em" }}>{radar.title}</div>
+                  <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "8px" }}>{radar.title}</div>
                   {radarView === radar.id ? (
                     <>
                       <pre style={C.radarPre}>{radar.report}</pre>
-                      <button onClick={() => setRadarView(null)} style={{ ...C.btn("#f5f5f7", "#1d1d1f", true), marginTop: "8px" }}>Hide Report</button>
+                      <button onClick={() => setRadarView(null)} style={{ ...C.btn("#f5f5f7", "#1d1d1f", true), marginTop: "8px" }}>Hide</button>
                     </>
                   ) : (
                     <button onClick={() => setRadarView(radar.id)} style={C.outlineBtn("#0071e3")}>View Full Report</button>
@@ -988,16 +1190,15 @@ export default function App() {
             <div style={C.topbar}>
               <div style={C.statusDot("#34c759")} />
               <span style={C.topbarTitle}>System Information</span>
-              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#8e8e93" }}>Auto-detected · Included in all Radar reports</span>
             </div>
             <div style={C.content}>
               <div style={{ maxWidth: "480px", animation: "fadeIn 0.3s ease" }}>
                 <div style={C.heroTitle}>Your Environment</div>
-                <div style={C.heroSub}>Automatically detected and included in every Radar report you file.</div>
+                <div style={C.heroSub}>Auto-detected and included in every Radar report.</div>
                 {Object.entries(SYSTEM_INFO).map(([key, val]) => (
                   <div key={key} style={C.infoRow}>
-                    <span style={C.infoKey}>{key}</span>
-                    <span style={C.infoVal}>{val}</span>
+                    <span style={{ fontSize: "12px", color: "#6e6e73", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 500 }}>{key}</span>
+                    <span style={{ fontSize: "12px", color: "#1d1d1f", fontFamily: "SF Mono, Monaco, monospace" }}>{val}</span>
                   </div>
                 ))}
               </div>
