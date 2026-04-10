@@ -1,5 +1,20 @@
 import { useState, useRef } from "react";
 
+const API_URL = "http://localhost:11434/api/chat";
+
+const CUSTOM_TEST_SYSTEM = `You are a senior Apple QA engineer. When given an app name and description, generate exactly 8 structured test cases in this JSON format only, no other text:
+[
+  {
+    "id": "CUSTOM-001",
+    "area": "Area Name",
+    "title": "Test case title",
+    "steps": ["Step 1", "Step 2", "Step 3"],
+    "expected": "Expected result",
+    "severity": "Critical"
+  }
+]
+Severity must be Critical, High, Medium, or Low.`;
+
 const SYSTEM_INFO = {
   os: "macOS 26.5",
   machine: "Apple M3 (arm64)",
@@ -10,9 +25,7 @@ const SYSTEM_INFO = {
 
 const APP_TEST_PLANS = {
   mail: {
-    name: "Mail",
-    icon: "✉️",
-    version: "16.0",
+    name: "Mail", icon: "✉️", version: "16.0",
     areas: ["Compose", "Inbox", "Search", "Attachments", "Formatting", "Accessibility"],
     tests: [
       { id: "MAIL-001", area: "Compose", title: "Compose new email", steps: ["Open Mail app", "Click Compose button", "Enter recipient email address", "Enter subject line", "Type message body", "Click Send"], expected: "Email is sent successfully and appears in Sent folder", severity: "Critical" },
@@ -30,9 +43,7 @@ const APP_TEST_PLANS = {
     ]
   },
   safari: {
-    name: "Safari",
-    icon: "🧭",
-    version: "18.0",
+    name: "Safari", icon: "🧭", version: "18.0",
     areas: ["Navigation", "Tabs", "Bookmarks", "Privacy", "Accessibility", "Performance"],
     tests: [
       { id: "SAF-001", area: "Navigation", title: "Navigate to URL successfully", steps: ["Open Safari", "Click address bar", "Type a valid URL", "Press Enter"], expected: "Page loads correctly within 3 seconds", severity: "Critical" },
@@ -48,9 +59,7 @@ const APP_TEST_PLANS = {
     ]
   },
   messages: {
-    name: "Messages",
-    icon: "💬",
-    version: "18.0",
+    name: "Messages", icon: "💬", version: "18.0",
     areas: ["Send", "Receive", "Media", "Reactions", "Search", "Accessibility"],
     tests: [
       { id: "MSG-001", area: "Send", title: "Send iMessage successfully", steps: ["Open Messages app", "Select or start a conversation", "Type a message", "Press Enter or click Send"], expected: "Message sends and shows blue bubble with delivered status", severity: "Critical" },
@@ -64,9 +73,7 @@ const APP_TEST_PLANS = {
     ]
   },
   notes: {
-    name: "Notes",
-    icon: "📝",
-    version: "18.0",
+    name: "Notes", icon: "📝", version: "18.0",
     areas: ["Create", "Edit", "Sync", "Search", "Formatting", "Accessibility"],
     tests: [
       { id: "NOTE-001", area: "Create", title: "Create new note", steps: ["Open Notes app", "Click compose button or press CMD+N", "Type note content"], expected: "New note created and saved automatically", severity: "Critical" },
@@ -78,9 +85,7 @@ const APP_TEST_PLANS = {
     ]
   },
   calendar: {
-    name: "Calendar",
-    icon: "📅",
-    version: "14.0",
+    name: "Calendar", icon: "📅", version: "14.0",
     areas: ["Events", "Alerts", "Sync", "Views", "Accessibility"],
     tests: [
       { id: "CAL-001", area: "Events", title: "Create new event", steps: ["Open Calendar app", "Double-click on a date", "Enter event title", "Set start and end time", "Click Done"], expected: "Event appears on calendar at correct date and time", severity: "Critical" },
@@ -149,7 +154,7 @@ ${result.rootCause || "Under investigation"}
 ATTACHMENTS
 -----------
 [ ] Screenshot
-[ ] Screen recording  
+[ ] Screen recording
 [ ] Console logs
 [ ] Crash report (if applicable)
 
@@ -167,12 +172,21 @@ export default function App() {
   const [radars, setRadars] = useState([]);
   const [copied, setCopied] = useState(null);
   const [failureForm, setFailureForm] = useState({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" });
+  const [customApp, setCustomApp] = useState({ name: "", description: "", icon: "📱", version: "" });
+  const [customTests, setCustomTests] = useState([]);
+  const [customLoading, setCustomLoading] = useState(false);
+  const [customStatus, setCustomStatus] = useState("");
+  const [customResults, setCustomResults] = useState({});
+  const [customActive, setCustomActive] = useState(null);
+  const [customFailureForm, setCustomFailureForm] = useState({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" });
+  const [isCustomSession, setIsCustomSession] = useState(false);
 
   const generateRadarId = () => `FB${Math.floor(10000000 + Math.random() * 90000000)}`;
 
   const selectApp = (appKey) => {
     setSelectedApp(appKey);
     setTestResults({});
+    setIsCustomSession(false);
     setScreen("testplan");
   };
 
@@ -186,6 +200,16 @@ export default function App() {
     }
   };
 
+  const markCustomTest = (testId, status) => {
+    if (status === "fail") {
+      setCustomActive(testId);
+      setCustomFailureForm({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" });
+      setScreen("customfailure");
+    } else {
+      setCustomResults(prev => ({ ...prev, [testId]: { status } }));
+    }
+  };
+
   const submitFailure = () => {
     const app = APP_TEST_PLANS[selectedApp];
     const test = app.tests.find(t => t.id === activeTest);
@@ -195,6 +219,53 @@ export default function App() {
     setRadars(prev => [...prev, newRadar]);
     setTestResults(prev => ({ ...prev, [activeTest]: { status: "fail", radarId } }));
     setScreen("testplan");
+  };
+
+  const submitCustomFailure = () => {
+    const test = customTests.find(t => t.id === customActive);
+    const radarId = generateRadarId();
+    const report = RADAR_TEMPLATE(radarId, customApp.name, test, customFailureForm, SYSTEM_INFO);
+    const newRadar = { id: radarId, appName: customApp.name, testId: customActive, title: test.title, severity: customFailureForm.severity || test.severity, date: new Date().toLocaleDateString(), report };
+    setRadars(prev => [...prev, newRadar]);
+    setCustomResults(prev => ({ ...prev, [customActive]: { status: "fail", radarId } }));
+    setScreen("customtests");
+  };
+
+  const generateCustomTests = async () => {
+    if (!customApp.name.trim() || !customApp.description.trim() || customLoading) return;
+    setCustomLoading(true);
+    setCustomStatus("Generating test plan...");
+    setCustomTests([]);
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "mistral-nemo:latest",
+          messages: [
+            { role: "system", content: CUSTOM_TEST_SYSTEM },
+            { role: "user", content: `App: ${customApp.name}\nVersion: ${customApp.version || "Latest"}\nDescription: ${customApp.description}` }
+          ],
+          stream: false
+        })
+      });
+      const data = await res.json();
+      const content = data.message.content.trim();
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const tests = JSON.parse(jsonMatch[0]);
+        setCustomTests(tests);
+        setCustomResults({});
+        setCustomStatus("");
+        setIsCustomSession(true);
+        setScreen("customtests");
+      } else {
+        setCustomStatus("Error parsing response — try again");
+      }
+    } catch (err) {
+      setCustomStatus("Error — is Ollama running?");
+    }
+    setCustomLoading(false);
   };
 
   const copyToClipboard = (text, id) => {
@@ -210,6 +281,13 @@ export default function App() {
     const failed = tests.filter(t => testResults[t.id]?.status === "fail").length;
     const pending = tests.length - passed - failed;
     return { total: tests.length, passed, failed, pending };
+  };
+
+  const getCustomStats = () => {
+    const passed = customTests.filter(t => customResults[t.id]?.status === "pass").length;
+    const failed = customTests.filter(t => customResults[t.id]?.status === "fail").length;
+    const pending = customTests.length - passed - failed;
+    return { total: customTests.length, passed, failed, pending };
   };
 
   const s = {
@@ -233,44 +311,146 @@ export default function App() {
   };
 
   const severityColor = (s) => ({ Critical: "#ff453a", High: "#ff9f0a", Medium: "#ffd60a", Low: "#30d158" })[s] || "#636366";
-
   const statusColor = (status) => ({ pass: "#30d158", fail: "#ff453a", pending: "#636366" })[status] || "#636366";
+
+  const renderTestCard = (test, result, onMark) => (
+    <div key={test.id} style={{ ...s.card, borderLeft: `3px solid ${result ? statusColor(result.status) : "#3a3a3c"}` }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "11px", color: "#48484a", fontFamily: "monospace" }}>{test.id}</span>
+            <span style={s.tag(severityColor(test.severity))}>{test.severity}</span>
+            <span style={{ fontSize: "11px", color: "#8e8e93" }}>{test.area}</span>
+            {result?.radarId && <span style={s.tag("#0a84ff")}>{result.radarId}</span>}
+          </div>
+          <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>{test.title}</div>
+          <div style={{ fontSize: "12px", color: "#8e8e93" }}>Expected: {test.expected}</div>
+        </div>
+        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+          {!result ? (
+            <>
+              <button onClick={() => onMark(test.id, "pass")} style={s.btn("#30d158", true)}>✓ Pass</button>
+              <button onClick={() => onMark(test.id, "fail")} style={s.btn("#ff453a", true)}>✗ Fail</button>
+            </>
+          ) : (
+            <span style={{ fontSize: "12px", color: statusColor(result.status), fontWeight: 600 }}>
+              {result.status === "pass" ? "✓ Passed" : "✗ Failed"}
+            </span>
+          )}
+        </div>
+      </div>
+      <details style={{ marginTop: "8px" }}>
+        <summary style={{ fontSize: "11px", color: "#48484a", cursor: "pointer" }}>View steps ({test.steps.length})</summary>
+        <div style={{ marginTop: "6px", paddingLeft: "12px" }}>
+          {test.steps.map((step, i) => <div key={i} style={{ fontSize: "12px", color: "#8e8e93", marginBottom: "2px" }}>{i + 1}. {step}</div>)}
+        </div>
+      </details>
+    </div>
+  );
+
+  const renderFailureForm = (form, setForm, onSubmit, onCancel, test) => (
+    <>
+      <div style={s.topbar}>
+        <div style={s.dot("#ff453a")} />
+        <span style={{ fontSize: "13px", fontWeight: 500 }}>File Radar — {test?.id}</span>
+      </div>
+      <div style={s.content}>
+        <div style={{ maxWidth: "640px" }}>
+          <div style={{ fontSize: "18px", fontWeight: 700, marginBottom: "4px" }}>File Radar Bug Report</div>
+          <div style={{ fontSize: "13px", color: "#8e8e93", marginBottom: "24px" }}>{test?.title}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div>
+              <label style={s.label}>ACTUAL RESULT *</label>
+              <textarea value={form.actualResult} onChange={e => setForm(p => ({ ...p, actualResult: e.target.value }))} placeholder="What actually happened?" rows={3} style={s.textarea} />
+            </div>
+            <div>
+              <label style={s.label}>SEVERITY</label>
+              <select value={form.severity} onChange={e => setForm(p => ({ ...p, severity: e.target.value }))} style={{ ...s.input, appearance: "none" }}>
+                <option value="">Use default ({test?.severity})</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div>
+              <label style={s.label}>IMPACT</label>
+              <textarea value={form.impact} onChange={e => setForm(p => ({ ...p, impact: e.target.value }))} placeholder="Who is affected and how severely?" rows={2} style={s.textarea} />
+            </div>
+            <div>
+              <label style={s.label}>POSSIBLE ROOT CAUSE</label>
+              <textarea value={form.rootCause} onChange={e => setForm(p => ({ ...p, rootCause: e.target.value }))} placeholder="Your technical hypothesis..." rows={2} style={s.textarea} />
+            </div>
+            <div>
+              <label style={s.label}>REGRESSION (optional)</label>
+              <input value={form.regression} onChange={e => setForm(p => ({ ...p, regression: e.target.value }))} placeholder="e.g. Worked in previous build, broken in 26.5" style={s.input} />
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={onSubmit} disabled={!form.actualResult.trim()} style={{ ...s.btn("#ff453a"), opacity: !form.actualResult.trim() ? 0.3 : 1 }}>File Radar Report</button>
+              <button onClick={onCancel} style={s.btn("#3a3a3c")}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderStats = (stats) => (
+    <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+      {[
+        { label: "Total", value: stats.total, color: "#0a84ff" },
+        { label: "Passed", value: stats.passed, color: "#30d158" },
+        { label: "Failed", value: stats.failed, color: "#ff453a" },
+        { label: "Pending", value: stats.pending, color: "#636366" }
+      ].map(stat => (
+        <div key={stat.label} style={s.statBox(stat.color)}>
+          <div style={{ fontSize: "22px", fontWeight: 700, color: stat.color }}>{stat.value}</div>
+          <div style={{ fontSize: "11px", color: "#8e8e93" }}>{stat.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const sidebarItems = [
+    { id: "home", label: "App Library", icon: "⊞" },
+    { id: "custom", label: "Custom App", icon: "＋" },
+    { id: "radars", label: `Radar Portfolio (${radars.length})`, icon: "◎" },
+    { id: "system", label: "System Info", icon: "⌥" }
+  ];
 
   return (
     <div style={s.app}>
       <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } ::-webkit-scrollbar { width: 0; } textarea::placeholder, input::placeholder { color: #48484a; }`}</style>
 
-      {/* Sidebar */}
       <div style={s.sidebar}>
         <div style={s.sidebarTitle}>
           🍎 Apple QA Radar
           <div style={{ fontSize: "10px", color: "#48484a", marginTop: "2px", fontWeight: 400 }}>QA Command Center</div>
         </div>
-        {[
-          { id: "home", label: "App Library", icon: "⊞" },
-          { id: "radars", label: `Radar Portfolio (${radars.length})`, icon: "◎" },
-          { id: "system", label: "System Info", icon: "⌥" }
-        ].map(item => (
-          <div key={item.id} style={s.sidebarItem(screen === item.id || (item.id === "home" && screen === "testplan") || (item.id === "home" && screen === "failureform"))} onClick={() => setScreen(item.id)}>
+        {sidebarItems.map(item => (
+          <div key={item.id} style={s.sidebarItem(screen === item.id || (item.id === "home" && (screen === "testplan" || screen === "failureform")) || (item.id === "custom" && (screen === "customtests" || screen === "customfailure")))} onClick={() => setScreen(item.id)}>
             <span>{item.icon}</span>{item.label}
           </div>
         ))}
-        {selectedApp && (
+        {selectedApp && !isCustomSession && (
           <div style={{ marginTop: "16px", padding: "0 16px" }}>
             <div style={{ fontSize: "10px", color: "#48484a", marginBottom: "8px", letterSpacing: "0.06em" }}>CURRENT SESSION</div>
             <div style={{ fontSize: "12px", color: "#0a84ff" }}>{APP_TEST_PLANS[selectedApp].icon} {APP_TEST_PLANS[selectedApp].name}</div>
-            {(() => { const st = getStats(); return (
-              <div style={{ fontSize: "11px", color: "#8e8e93", marginTop: "4px" }}>
-                ✓ {st.passed} passed · ✗ {st.failed} failed · {st.pending} pending
-              </div>
-            ); })()}
+            {(() => { const st = getStats(); return <div style={{ fontSize: "11px", color: "#8e8e93", marginTop: "4px" }}>✓ {st.passed} · ✗ {st.failed} · {st.pending} pending</div>; })()}
+          </div>
+        )}
+        {isCustomSession && customTests.length > 0 && (
+          <div style={{ marginTop: "16px", padding: "0 16px" }}>
+            <div style={{ fontSize: "10px", color: "#48484a", marginBottom: "8px", letterSpacing: "0.06em" }}>CUSTOM SESSION</div>
+            <div style={{ fontSize: "12px", color: "#5e5ce6" }}>{customApp.icon} {customApp.name}</div>
+            {(() => { const st = getCustomStats(); return <div style={{ fontSize: "11px", color: "#8e8e93", marginTop: "4px" }}>✓ {st.passed} · ✗ {st.failed} · {st.pending} pending</div>; })()}
           </div>
         )}
       </div>
 
-      {/* Main */}
       <div style={s.main}>
-        {/* Home — App Library */}
+
+        {/* Home */}
         {screen === "home" && (
           <>
             <div style={s.topbar}>
@@ -312,64 +492,12 @@ export default function App() {
                 <span style={{ fontSize: "13px", fontWeight: 500 }}>{app.icon} {app.name} — Test Plan</span>
                 <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
                   <button onClick={() => setScreen("home")} style={s.btn("#3a3a3c", true)}>← Back</button>
-                  {stats.failed > 0 && <button onClick={() => setScreen("radars")} style={s.btn("#ff453a", true)}>View Radars ({stats.failed})</button>}
+                  {stats.failed > 0 && <button onClick={() => setScreen("radars")} style={s.btn("#ff453a", true)}>Radars ({stats.failed})</button>}
                 </div>
               </div>
               <div style={s.content}>
-                {/* Stats */}
-                <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
-                  {[
-                    { label: "Total", value: stats.total, color: "#0a84ff" },
-                    { label: "Passed", value: stats.passed, color: "#30d158" },
-                    { label: "Failed", value: stats.failed, color: "#ff453a" },
-                    { label: "Pending", value: stats.pending, color: "#636366" }
-                  ].map(stat => (
-                    <div key={stat.label} style={s.statBox(stat.color)}>
-                      <div style={{ fontSize: "22px", fontWeight: 700, color: stat.color }}>{stat.value}</div>
-                      <div style={{ fontSize: "11px", color: "#8e8e93" }}>{stat.label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Tests */}
-                {app.tests.map(test => {
-                  const result = testResults[test.id];
-                  return (
-                    <div key={test.id} style={{ ...s.card, borderLeft: `3px solid ${result ? statusColor(result.status) : "#3a3a3c"}` }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                            <span style={{ fontSize: "11px", color: "#48484a", fontFamily: "monospace" }}>{test.id}</span>
-                            <span style={s.tag(severityColor(test.severity))}>{test.severity}</span>
-                            <span style={{ fontSize: "11px", color: "#8e8e93" }}>{test.area}</span>
-                            {result?.radarId && <span style={s.tag("#0a84ff")}>{result.radarId}</span>}
-                          </div>
-                          <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>{test.title}</div>
-                          <div style={{ fontSize: "12px", color: "#8e8e93" }}>Expected: {test.expected}</div>
-                        </div>
-                        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                          {!result ? (
-                            <>
-                              <button onClick={() => markTest(test.id, "pass")} style={s.btn("#30d158", true)}>✓ Pass</button>
-                              <button onClick={() => markTest(test.id, "fail")} style={s.btn("#ff453a", true)}>✗ Fail</button>
-                            </>
-                          ) : (
-                            <span style={{ fontSize: "12px", color: statusColor(result.status), fontWeight: 600 }}>
-                              {result.status === "pass" ? "✓ Passed" : "✗ Failed"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Steps expandable */}
-                      <details style={{ marginTop: "8px" }}>
-                        <summary style={{ fontSize: "11px", color: "#48484a", cursor: "pointer" }}>View steps ({test.steps.length})</summary>
-                        <div style={{ marginTop: "6px", paddingLeft: "12px" }}>
-                          {test.steps.map((step, i) => <div key={i} style={{ fontSize: "12px", color: "#8e8e93", marginBottom: "2px" }}>{i + 1}. {step}</div>)}
-                        </div>
-                      </details>
-                    </div>
-                  );
-                })}
+                {renderStats(stats)}
+                {app.tests.map(test => renderTestCard(test, testResults[test.id], markTest))}
               </div>
             </>
           );
@@ -377,57 +505,75 @@ export default function App() {
 
         {/* Failure Form */}
         {screen === "failureform" && selectedApp && activeTest && (() => {
-          const app = APP_TEST_PLANS[selectedApp];
-          const test = app.tests.find(t => t.id === activeTest);
+          const test = APP_TEST_PLANS[selectedApp].tests.find(t => t.id === activeTest);
+          return renderFailureForm(failureForm, setFailureForm, submitFailure, () => setScreen("testplan"), test);
+        })()}
+
+        {/* Custom App */}
+        {screen === "custom" && (
+          <>
+            <div style={s.topbar}>
+              <div style={s.dot("#5e5ce6")} />
+              <span style={{ fontSize: "13px", fontWeight: 500 }}>Custom App Testing</span>
+              {customStatus && <span style={{ fontSize: "12px", color: "#ffd60a", marginLeft: "8px" }}>{customStatus}</span>}
+            </div>
+            <div style={s.content}>
+              <div style={{ maxWidth: "640px" }}>
+                <div style={{ fontSize: "18px", fontWeight: 700, marginBottom: "4px", letterSpacing: "-0.01em" }}>Test Any Apple App</div>
+                <div style={{ fontSize: "13px", color: "#8e8e93", marginBottom: "24px" }}>Enter any app name and describe what you want to test. The AI generates a complete test plan automatically — perfect for beta software, new features, or UI testing.</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={s.label}>APP NAME *</label>
+                      <input value={customApp.name} onChange={e => setCustomApp(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Freeform, Shortcuts, TestFlight" style={s.input} />
+                    </div>
+                    <div style={{ width: "120px" }}>
+                      <label style={s.label}>VERSION</label>
+                      <input value={customApp.version} onChange={e => setCustomApp(p => ({ ...p, version: e.target.value }))} placeholder="e.g. Beta 3" style={s.input} />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={s.label}>WHAT TO TEST *</label>
+                    <textarea value={customApp.description} onChange={e => setCustomApp(p => ({ ...p, description: e.target.value }))} placeholder="Describe the feature or area you want to test. Example: Test the new collaboration features in Freeform beta including real-time drawing sync, participant management, and iCloud sharing." rows={5} style={s.textarea} />
+                  </div>
+                  <button onClick={generateCustomTests} disabled={customLoading || !customApp.name.trim() || !customApp.description.trim()} style={{ ...s.btn("#5e5ce6"), opacity: (customLoading || !customApp.name.trim() || !customApp.description.trim()) ? 0.3 : 1, alignSelf: "flex-start" }}>
+                    {customLoading ? customStatus : "Generate Test Plan"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Custom Tests */}
+        {screen === "customtests" && customTests.length > 0 && (() => {
+          const stats = getCustomStats();
           return (
             <>
               <div style={s.topbar}>
-                <div style={s.dot("#ff453a")} />
-                <span style={{ fontSize: "13px", fontWeight: 500 }}>File Radar — {test.id}</span>
+                <div style={s.dot("#5e5ce6")} />
+                <span style={{ fontSize: "13px", fontWeight: 500 }}>{customApp.icon} {customApp.name} — AI Generated Test Plan</span>
+                <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+                  <button onClick={() => setScreen("custom")} style={s.btn("#3a3a3c", true)}>← New App</button>
+                  {stats.failed > 0 && <button onClick={() => setScreen("radars")} style={s.btn("#ff453a", true)}>Radars ({stats.failed})</button>}
+                </div>
               </div>
               <div style={s.content}>
-                <div style={{ maxWidth: "640px" }}>
-                  <div style={{ fontSize: "18px", fontWeight: 700, marginBottom: "4px", letterSpacing: "-0.01em" }}>File Radar Bug Report</div>
-                  <div style={{ fontSize: "13px", color: "#8e8e93", marginBottom: "24px" }}>{test.title}</div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div>
-                      <label style={s.label}>ACTUAL RESULT *</label>
-                      <textarea value={failureForm.actualResult} onChange={e => setFailureForm(p => ({ ...p, actualResult: e.target.value }))} placeholder="What actually happened?" rows={3} style={s.textarea} />
-                    </div>
-                    <div>
-                      <label style={s.label}>SEVERITY</label>
-                      <select value={failureForm.severity} onChange={e => setFailureForm(p => ({ ...p, severity: e.target.value }))} style={{ ...s.input, appearance: "none" }}>
-                        <option value="">Use default ({test.severity})</option>
-                        <option value="Critical">Critical</option>
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={s.label}>IMPACT</label>
-                      <textarea value={failureForm.impact} onChange={e => setFailureForm(p => ({ ...p, impact: e.target.value }))} placeholder="Who is affected and how severely?" rows={2} style={s.textarea} />
-                    </div>
-                    <div>
-                      <label style={s.label}>POSSIBLE ROOT CAUSE</label>
-                      <textarea value={failureForm.rootCause} onChange={e => setFailureForm(p => ({ ...p, rootCause: e.target.value }))} placeholder="Your technical hypothesis..." rows={2} style={s.textarea} />
-                    </div>
-                    <div>
-                      <label style={s.label}>REGRESSION (optional)</label>
-                      <input value={failureForm.regression} onChange={e => setFailureForm(p => ({ ...p, regression: e.target.value }))} placeholder="e.g. Worked in previous build, broken in 26.5" style={s.input} />
-                    </div>
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <button onClick={submitFailure} disabled={!failureForm.actualResult.trim()} style={{ ...s.btn("#ff453a"), opacity: !failureForm.actualResult.trim() ? 0.3 : 1 }}>
-                        File Radar Report
-                      </button>
-                      <button onClick={() => setScreen("testplan")} style={s.btn("#3a3a3c")}>Cancel</button>
-                    </div>
-                  </div>
+                <div style={{ ...s.card, background: "#5e5ce611", border: "0.5px solid #5e5ce633", marginBottom: "16px" }}>
+                  <div style={{ fontSize: "11px", color: "#5e5ce6", fontWeight: 600, marginBottom: "4px" }}>AI GENERATED · {customApp.name} {customApp.version}</div>
+                  <div style={{ fontSize: "12px", color: "#8e8e93" }}>{customApp.description}</div>
                 </div>
+                {renderStats(stats)}
+                {customTests.map(test => renderTestCard(test, customResults[test.id], markCustomTest))}
               </div>
             </>
           );
+        })()}
+
+        {/* Custom Failure Form */}
+        {screen === "customfailure" && customActive && (() => {
+          const test = customTests.find(t => t.id === customActive);
+          return renderFailureForm(customFailureForm, setCustomFailureForm, submitCustomFailure, () => setScreen("customtests"), test);
         })()}
 
         {/* Radar Portfolio */}
@@ -488,13 +634,12 @@ export default function App() {
                     <span style={{ fontSize: "13px", color: "#f5f5f7", fontFamily: "monospace" }}>{val}</span>
                   </div>
                 ))}
-                <div style={{ marginTop: "16px", fontSize: "11px", color: "#48484a" }}>
-                  System info is automatically included in every Radar report you file.
-                </div>
+                <div style={{ marginTop: "16px", fontSize: "11px", color: "#48484a" }}>System info is automatically included in every Radar report you file.</div>
               </div>
             </div>
           </>
         )}
+
       </div>
     </div>
   );
