@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 const API_URL = "http://localhost:11434/api/chat";
 
@@ -15,85 +15,157 @@ const CUSTOM_TEST_SYSTEM = `You are a senior Apple QA engineer. When given an ap
 ]
 Severity must be Critical, High, Medium, or Low.`;
 
+const ACCESSIBILITY_SYSTEM = `You are an Apple accessibility expert with 15 years of experience. When given a URL or app description, generate a detailed accessibility audit report.
+
+Respond in this exact JSON format only, no other text:
+{
+  "score": 85,
+  "grade": "B",
+  "summary": "One sentence summary",
+  "violations": [
+    {
+      "id": "AX-001",
+      "wcag": "1.1.1",
+      "level": "A",
+      "severity": "Critical",
+      "element": "img tags",
+      "issue": "Description of issue",
+      "recommendation": "How to fix it",
+      "appleGuideline": "Apple HIG reference"
+    }
+  ],
+  "passes": [
+    {
+      "id": "AX-PASS-001",
+      "criterion": "What passes",
+      "detail": "Why it passes"
+    }
+  ],
+  "recommendations": ["Top recommendation 1", "Top recommendation 2", "Top recommendation 3"]
+}`;
+
+const BUILD_NOTES_SYSTEM = `You are a senior Apple QA engineer. When given release notes or a feature description, generate test cases for each new feature mentioned.
+
+Respond in this exact JSON format only, no other text:
+{
+  "version": "version number or unknown",
+  "features": [
+    {
+      "name": "Feature name",
+      "testCases": [
+        {
+          "id": "BN-001",
+          "title": "Test case title",
+          "steps": ["Step 1", "Step 2", "Step 3"],
+          "expected": "Expected result",
+          "severity": "High",
+          "area": "Area"
+        }
+      ]
+    }
+  ]
+}`;
+
+const MATRIX_SYSTEM = `You are a senior Apple QA engineer. When given a feature list, generate a test matrix mapping features to Apple devices and OS versions.
+
+Respond in this exact JSON format only, no other text:
+{
+  "devices": ["iPhone 15", "iPhone 16", "iPad Air", "MacBook Pro", "Apple Watch"],
+  "features": [
+    {
+      "name": "Feature name",
+      "priority": "Critical",
+      "coverage": {
+        "iPhone 15": "required",
+        "iPhone 16": "required",
+        "iPad Air": "recommended",
+        "MacBook Pro": "optional",
+        "Apple Watch": "not applicable"
+      },
+      "notes": "Any special testing notes"
+    }
+  ]
+}`;
+
 const SYSTEM_INFO = {
   os: "macOS 26.5",
   machine: "Apple M3 (arm64)",
   browser: "Google Chrome 144",
-  screen: "2880 x 1864 Retina",
+  screen: "2880 × 1864 Retina",
   python: "3.13.12"
 };
 
 const APP_TEST_PLANS = {
   mail: {
-    name: "Mail", icon: "✉️", version: "16.0",
+    name: "Mail", icon: "📧", version: "16.0",
     areas: ["Compose", "Inbox", "Search", "Attachments", "Formatting", "Accessibility"],
     tests: [
-      { id: "MAIL-001", area: "Compose", title: "Compose new email", steps: ["Open Mail app", "Click Compose button", "Enter recipient email address", "Enter subject line", "Type message body", "Click Send"], expected: "Email is sent successfully and appears in Sent folder", severity: "Critical" },
-      { id: "MAIL-002", area: "Compose", title: "Send email with attachment", steps: ["Open Mail app", "Click Compose button", "Click attachment icon", "Select a file from Finder", "Click Send"], expected: "Email sends with attachment visible to recipient", severity: "High" },
-      { id: "MAIL-003", area: "Compose", title: "CC and BCC fields work correctly", steps: ["Open Mail app", "Click Compose button", "Click CC/BCC button", "Add recipients to CC and BCC fields", "Send email"], expected: "CC recipients see each other, BCC recipients are hidden", severity: "High" },
-      { id: "MAIL-004", area: "Inbox", title: "Receive and display new email", steps: ["Send email to test account", "Open Mail app", "Check inbox for new message"], expected: "New email appears in inbox with sender, subject, and preview", severity: "Critical" },
-      { id: "MAIL-005", area: "Inbox", title: "Mark email as read/unread", steps: ["Open Mail app", "Right-click an unread email", "Select Mark as Read", "Right-click again", "Select Mark as Unread"], expected: "Email bold indicator toggles correctly", severity: "Medium" },
-      { id: "MAIL-006", area: "Inbox", title: "Delete email moves to trash", steps: ["Open Mail app", "Select an email", "Press Delete key"], expected: "Email moves to Trash folder immediately", severity: "High" },
-      { id: "MAIL-007", area: "Search", title: "Search by sender name", steps: ["Open Mail app", "Click Search bar", "Type sender name", "Press Enter"], expected: "All emails from that sender appear in results", severity: "High" },
-      { id: "MAIL-008", area: "Search", title: "Search by subject keyword", steps: ["Open Mail app", "Click Search bar", "Type keyword from subject", "Press Enter"], expected: "Emails with matching subject appear in results", severity: "High" },
-      { id: "MAIL-009", area: "Formatting", title: "Bold text formatting applies correctly", steps: ["Open Mail compose window", "Type some text", "Select the text", "Press CMD+B"], expected: "Selected text becomes bold", severity: "Medium" },
-      { id: "MAIL-010", area: "Accessibility", title: "VoiceOver reads email content", steps: ["Enable VoiceOver with CMD+F5", "Open Mail app", "Navigate to inbox", "Open an email"], expected: "VoiceOver reads sender, subject, and body correctly", severity: "High" },
-      { id: "MAIL-011", area: "Attachments", title: "Preview attachment inline", steps: ["Open email with image attachment", "Click on attachment"], expected: "Image previews inline without opening external app", severity: "Medium" },
-      { id: "MAIL-012", area: "Compose", title: "Draft saves automatically", steps: ["Open compose window", "Type partial email", "Close compose window without sending"], expected: "Draft appears in Drafts folder automatically", severity: "High" }
+      { id: "MAIL-001", area: "Compose", title: "Compose and send new email", steps: ["Open Mail", "Click Compose", "Enter recipient", "Enter subject", "Type body", "Click Send"], expected: "Email sent and appears in Sent folder", severity: "Critical" },
+      { id: "MAIL-002", area: "Compose", title: "Send email with attachment", steps: ["Open Mail", "Click Compose", "Click attachment icon", "Select file", "Click Send"], expected: "Email sends with attachment visible to recipient", severity: "High" },
+      { id: "MAIL-003", area: "Compose", title: "CC and BCC fields function correctly", steps: ["Open Mail", "Click Compose", "Expand CC/BCC", "Add recipients", "Send"], expected: "CC recipients visible to each other, BCC hidden", severity: "High" },
+      { id: "MAIL-004", area: "Inbox", title: "New email appears in inbox", steps: ["Send email to test account", "Open Mail", "Check inbox"], expected: "Email appears with sender, subject, preview", severity: "Critical" },
+      { id: "MAIL-005", area: "Inbox", title: "Mark as read and unread toggles", steps: ["Open Mail", "Right-click unread email", "Select Mark as Read", "Right-click again", "Mark as Unread"], expected: "Bold indicator toggles correctly", severity: "Medium" },
+      { id: "MAIL-006", area: "Inbox", title: "Delete moves email to Trash", steps: ["Open Mail", "Select email", "Press Delete"], expected: "Email moves to Trash immediately", severity: "High" },
+      { id: "MAIL-007", area: "Search", title: "Search by sender name", steps: ["Open Mail", "Click Search", "Type sender name", "Press Enter"], expected: "All emails from sender appear in results", severity: "High" },
+      { id: "MAIL-008", area: "Search", title: "Search by subject keyword", steps: ["Open Mail", "Click Search", "Type subject keyword", "Press Enter"], expected: "Matching emails appear in results", severity: "High" },
+      { id: "MAIL-009", area: "Formatting", title: "Bold formatting applies correctly", steps: ["Open compose window", "Type text", "Select text", "Press CMD+B"], expected: "Selected text becomes bold", severity: "Medium" },
+      { id: "MAIL-010", area: "Accessibility", title: "VoiceOver reads email content", steps: ["Enable VoiceOver CMD+F5", "Open Mail", "Navigate to inbox", "Open email"], expected: "VoiceOver reads sender, subject, body correctly", severity: "High" },
+      { id: "MAIL-011", area: "Attachments", title: "Preview attachment inline", steps: ["Open email with image attachment", "Click attachment"], expected: "Image previews inline without external app", severity: "Medium" },
+      { id: "MAIL-012", area: "Compose", title: "Draft saves automatically", steps: ["Open compose window", "Type partial email", "Close without sending"], expected: "Draft appears in Drafts folder automatically", severity: "High" }
     ]
   },
   safari: {
     name: "Safari", icon: "🧭", version: "18.0",
     areas: ["Navigation", "Tabs", "Bookmarks", "Privacy", "Accessibility", "Performance"],
     tests: [
-      { id: "SAF-001", area: "Navigation", title: "Navigate to URL successfully", steps: ["Open Safari", "Click address bar", "Type a valid URL", "Press Enter"], expected: "Page loads correctly within 3 seconds", severity: "Critical" },
-      { id: "SAF-002", area: "Navigation", title: "Back and forward navigation works", steps: ["Open Safari", "Visit two different pages", "Click Back button", "Click Forward button"], expected: "Browser navigates correctly between pages", severity: "Critical" },
-      { id: "SAF-003", area: "Tabs", title: "Open new tab with CMD+T", steps: ["Open Safari", "Press CMD+T"], expected: "New empty tab opens and receives focus", severity: "High" },
-      { id: "SAF-004", area: "Tabs", title: "Close tab with CMD+W", steps: ["Open Safari with multiple tabs", "Press CMD+W"], expected: "Current tab closes, focus moves to adjacent tab", severity: "High" },
-      { id: "SAF-005", area: "Privacy", title: "Private browsing mode activates", steps: ["Open Safari", "Press CMD+Shift+N"], expected: "Private browsing window opens with dark address bar", severity: "High" },
-      { id: "SAF-006", area: "Privacy", title: "Cookies blocked in private mode", steps: ["Open private browsing window", "Visit a cookie-dependent site", "Close window and reopen normally"], expected: "No cookies persist from private session", severity: "Critical" },
-      { id: "SAF-007", area: "Bookmarks", title: "Bookmark page with CMD+D", steps: ["Open Safari", "Navigate to a page", "Press CMD+D", "Click Add"], expected: "Page appears in bookmarks", severity: "Medium" },
-      { id: "SAF-008", area: "Performance", title: "Page load time under 3 seconds", steps: ["Open Safari", "Navigate to apple.com", "Measure load time"], expected: "Page fully loads within 3 seconds on fast connection", severity: "High" },
-      { id: "SAF-009", area: "Accessibility", title: "Reader mode activates on articles", steps: ["Open Safari", "Navigate to a news article", "Click Reader Mode button in address bar"], expected: "Article displays in clean Reader view", severity: "Medium" },
-      { id: "SAF-010", area: "Navigation", title: "Invalid URL shows error page", steps: ["Open Safari", "Type invalid URL in address bar", "Press Enter"], expected: "Safari displays a helpful error page", severity: "Medium" }
+      { id: "SAF-001", area: "Navigation", title: "Navigate to URL successfully", steps: ["Open Safari", "Click address bar", "Type valid URL", "Press Enter"], expected: "Page loads correctly within 3 seconds", severity: "Critical" },
+      { id: "SAF-002", area: "Navigation", title: "Back and forward navigation", steps: ["Open Safari", "Visit two pages", "Click Back", "Click Forward"], expected: "Browser navigates correctly between pages", severity: "Critical" },
+      { id: "SAF-003", area: "Tabs", title: "Open new tab with CMD+T", steps: ["Open Safari", "Press CMD+T"], expected: "New empty tab opens with focus", severity: "High" },
+      { id: "SAF-004", area: "Tabs", title: "Close tab with CMD+W", steps: ["Open Safari with multiple tabs", "Press CMD+W"], expected: "Tab closes, focus moves to adjacent tab", severity: "High" },
+      { id: "SAF-005", area: "Privacy", title: "Private browsing activates", steps: ["Open Safari", "Press CMD+Shift+N"], expected: "Private window opens with dark address bar", severity: "High" },
+      { id: "SAF-006", area: "Privacy", title: "Cookies blocked in private mode", steps: ["Open private window", "Visit cookie site", "Close and reopen normally"], expected: "No cookies persist from private session", severity: "Critical" },
+      { id: "SAF-007", area: "Bookmarks", title: "Bookmark page with CMD+D", steps: ["Open Safari", "Navigate to page", "Press CMD+D", "Click Add"], expected: "Page appears in bookmarks", severity: "Medium" },
+      { id: "SAF-008", area: "Performance", title: "Page load under 3 seconds", steps: ["Open Safari", "Navigate to apple.com", "Measure load time"], expected: "Page loads within 3 seconds on fast connection", severity: "High" },
+      { id: "SAF-009", area: "Accessibility", title: "Reader mode activates on articles", steps: ["Open Safari", "Navigate to article", "Click Reader Mode"], expected: "Article displays in clean Reader view", severity: "Medium" },
+      { id: "SAF-010", area: "Navigation", title: "Invalid URL shows error page", steps: ["Open Safari", "Type invalid URL", "Press Enter"], expected: "Safari displays helpful error page", severity: "Medium" }
     ]
   },
   messages: {
     name: "Messages", icon: "💬", version: "18.0",
     areas: ["Send", "Receive", "Media", "Reactions", "Search", "Accessibility"],
     tests: [
-      { id: "MSG-001", area: "Send", title: "Send iMessage successfully", steps: ["Open Messages app", "Select or start a conversation", "Type a message", "Press Enter or click Send"], expected: "Message sends and shows blue bubble with delivered status", severity: "Critical" },
-      { id: "MSG-002", area: "Send", title: "Send SMS to non-iPhone user", steps: ["Open Messages app", "Start conversation with non-iPhone number", "Type message", "Send"], expected: "Message sends as SMS shown in green bubble", severity: "Critical" },
-      { id: "MSG-003", area: "Media", title: "Send photo from camera roll", steps: ["Open Messages app", "Open a conversation", "Click attachment icon", "Select photo from library", "Send"], expected: "Photo sends and displays inline in conversation", severity: "High" },
-      { id: "MSG-004", area: "Reactions", title: "Add tapback reaction to message", steps: ["Open Messages app", "Long press on a received message", "Select a tapback emoji"], expected: "Reaction appears on message visible to both parties", severity: "Medium" },
-      { id: "MSG-005", area: "Search", title: "Search messages by keyword", steps: ["Open Messages app", "Pull down to reveal search bar", "Type a keyword"], expected: "Matching messages appear with keyword highlighted", severity: "High" },
-      { id: "MSG-006", area: "Accessibility", title: "Dynamic type scales message text", steps: ["Go to Settings > Accessibility > Display & Text Size", "Increase text size", "Open Messages app"], expected: "Message text scales to match system text size setting", severity: "High" },
-      { id: "MSG-007", area: "Send", title: "Message fails gracefully with no connection", steps: ["Turn off WiFi and cellular", "Open Messages", "Try to send a message"], expected: "Message shows failed status with option to retry", severity: "High" },
-      { id: "MSG-008", area: "Media", title: "Send audio message", steps: ["Open Messages conversation", "Hold microphone button", "Record audio message", "Release to send"], expected: "Audio message sends and plays back correctly", severity: "Medium" }
+      { id: "MSG-001", area: "Send", title: "Send iMessage successfully", steps: ["Open Messages", "Select conversation", "Type message", "Press Enter"], expected: "Message sends with blue bubble and delivered status", severity: "Critical" },
+      { id: "MSG-002", area: "Send", title: "Send SMS to non-iPhone user", steps: ["Open Messages", "Start conversation with non-iPhone number", "Type message", "Send"], expected: "Message sends as green SMS bubble", severity: "Critical" },
+      { id: "MSG-003", area: "Media", title: "Send photo from camera roll", steps: ["Open Messages", "Open conversation", "Click attachment", "Select photo", "Send"], expected: "Photo sends and displays inline", severity: "High" },
+      { id: "MSG-004", area: "Reactions", title: "Add tapback reaction", steps: ["Open Messages", "Long press received message", "Select tapback emoji"], expected: "Reaction appears on message for both parties", severity: "Medium" },
+      { id: "MSG-005", area: "Search", title: "Search messages by keyword", steps: ["Open Messages", "Pull down for search", "Type keyword"], expected: "Matching messages appear with keyword highlighted", severity: "High" },
+      { id: "MSG-006", area: "Accessibility", title: "Dynamic type scales text", steps: ["Settings > Accessibility > Text Size", "Increase size", "Open Messages"], expected: "Text scales to match system setting", severity: "High" },
+      { id: "MSG-007", area: "Send", title: "Message fails gracefully offline", steps: ["Disable WiFi and cellular", "Open Messages", "Send message"], expected: "Message shows failed status with retry option", severity: "High" },
+      { id: "MSG-008", area: "Media", title: "Send audio message", steps: ["Open conversation", "Hold microphone button", "Record message", "Release to send"], expected: "Audio sends and plays back correctly", severity: "Medium" }
     ]
   },
   notes: {
     name: "Notes", icon: "📝", version: "18.0",
     areas: ["Create", "Edit", "Sync", "Search", "Formatting", "Accessibility"],
     tests: [
-      { id: "NOTE-001", area: "Create", title: "Create new note", steps: ["Open Notes app", "Click compose button or press CMD+N", "Type note content"], expected: "New note created and saved automatically", severity: "Critical" },
-      { id: "NOTE-002", area: "Edit", title: "Edit existing note", steps: ["Open Notes app", "Select an existing note", "Click in the note body", "Edit content"], expected: "Changes save automatically without manual save action", severity: "Critical" },
-      { id: "NOTE-003", area: "Formatting", title: "Apply heading formatting", steps: ["Open Notes app", "Create or open a note", "Type text", "Select text", "Apply Heading format from Format menu"], expected: "Text displays as large heading style", severity: "Medium" },
-      { id: "NOTE-004", area: "Search", title: "Search notes by content", steps: ["Open Notes app", "Click Search field", "Type keyword from note content"], expected: "Notes containing keyword appear in results", severity: "High" },
-      { id: "NOTE-005", area: "Sync", title: "Note syncs across devices via iCloud", steps: ["Create note on Mac", "Wait 30 seconds", "Check same iCloud account on iPhone"], expected: "Note appears on iPhone within 30 seconds", severity: "Critical" },
-      { id: "NOTE-006", area: "Accessibility", title: "VoiceOver reads note content", steps: ["Enable VoiceOver", "Open Notes app", "Navigate to a note"], expected: "VoiceOver reads note title and content accurately", severity: "High" }
+      { id: "NOTE-001", area: "Create", title: "Create new note", steps: ["Open Notes", "Press CMD+N", "Type content"], expected: "Note created and saved automatically", severity: "Critical" },
+      { id: "NOTE-002", area: "Edit", title: "Edit existing note autosaves", steps: ["Open Notes", "Select note", "Click body", "Edit content"], expected: "Changes save without manual action", severity: "Critical" },
+      { id: "NOTE-003", area: "Formatting", title: "Heading formatting applies", steps: ["Open Notes", "Type text", "Select text", "Apply Heading from Format menu"], expected: "Text displays as heading style", severity: "Medium" },
+      { id: "NOTE-004", area: "Search", title: "Search by content keyword", steps: ["Open Notes", "Click Search", "Type keyword"], expected: "Notes with keyword appear in results", severity: "High" },
+      { id: "NOTE-005", area: "Sync", title: "Note syncs via iCloud", steps: ["Create note on Mac", "Wait 30 seconds", "Check iPhone same account"], expected: "Note appears on iPhone within 30 seconds", severity: "Critical" },
+      { id: "NOTE-006", area: "Accessibility", title: "VoiceOver reads note content", steps: ["Enable VoiceOver", "Open Notes", "Navigate to note"], expected: "VoiceOver reads title and content accurately", severity: "High" }
     ]
   },
   calendar: {
     name: "Calendar", icon: "📅", version: "14.0",
     areas: ["Events", "Alerts", "Sync", "Views", "Accessibility"],
     tests: [
-      { id: "CAL-001", area: "Events", title: "Create new event", steps: ["Open Calendar app", "Double-click on a date", "Enter event title", "Set start and end time", "Click Done"], expected: "Event appears on calendar at correct date and time", severity: "Critical" },
-      { id: "CAL-002", area: "Events", title: "Edit existing event", steps: ["Open Calendar app", "Double-click on existing event", "Modify title or time", "Click Done"], expected: "Event updates with new information", severity: "High" },
-      { id: "CAL-003", area: "Events", title: "Delete event", steps: ["Open Calendar app", "Click on event", "Press Delete key", "Confirm deletion"], expected: "Event removed from calendar immediately", severity: "High" },
-      { id: "CAL-004", area: "Alerts", title: "Event alert fires on time", steps: ["Create event with alert 5 minutes before", "Wait for alert time"], expected: "Notification appears exactly 5 minutes before event", severity: "Critical" },
-      { id: "CAL-005", area: "Views", title: "Switch between day week month views", steps: ["Open Calendar app", "Click Day view", "Click Week view", "Click Month view"], expected: "Calendar switches views correctly showing accurate data", severity: "High" },
-      { id: "CAL-006", area: "Sync", title: "Event syncs to iPhone via iCloud", steps: ["Create event on Mac Calendar", "Wait 30 seconds", "Check iPhone Calendar"], expected: "Event appears on iPhone within 30 seconds", severity: "Critical" }
+      { id: "CAL-001", area: "Events", title: "Create new event", steps: ["Open Calendar", "Double-click date", "Enter title", "Set time", "Click Done"], expected: "Event appears at correct date and time", severity: "Critical" },
+      { id: "CAL-002", area: "Events", title: "Edit existing event", steps: ["Open Calendar", "Double-click event", "Modify title or time", "Click Done"], expected: "Event updates with new information", severity: "High" },
+      { id: "CAL-003", area: "Events", title: "Delete event", steps: ["Open Calendar", "Click event", "Press Delete", "Confirm"], expected: "Event removed immediately", severity: "High" },
+      { id: "CAL-004", area: "Alerts", title: "Event alert fires on time", steps: ["Create event with 5 min alert", "Wait for alert time"], expected: "Notification fires exactly 5 min before event", severity: "Critical" },
+      { id: "CAL-005", area: "Views", title: "Switch between day week month", steps: ["Open Calendar", "Click Day", "Click Week", "Click Month"], expected: "Views switch with accurate data", severity: "High" },
+      { id: "CAL-006", area: "Sync", title: "Event syncs to iPhone", steps: ["Create event on Mac", "Wait 30 seconds", "Check iPhone Calendar"], expected: "Event appears on iPhone within 30 seconds", severity: "Critical" }
     ]
   }
 };
@@ -125,7 +197,6 @@ OS:           ${systemInfo.os}
 Machine:      ${systemInfo.machine}
 Browser:      ${systemInfo.browser}
 Screen:       ${systemInfo.screen}
-Python:       ${systemInfo.python}
 
 STEPS TO REPRODUCE
 ------------------
@@ -141,11 +212,11 @@ ${result.actualResult}
 
 IMPACT
 ------
-${result.impact || "Users are unable to complete this core workflow."}
+${result.impact || "Users unable to complete this core workflow."}
 
 REGRESSION
 ----------
-${result.regression || "Unknown — requires further investigation"}
+${result.regression || "Unknown — requires investigation"}
 
 POSSIBLE ROOT CAUSE
 -------------------
@@ -156,7 +227,7 @@ ATTACHMENTS
 [ ] Screenshot
 [ ] Screen recording
 [ ] Console logs
-[ ] Crash report (if applicable)
+[ ] Crash report
 
 ================================================================================
 END OF RADAR — ${bugId}
@@ -168,11 +239,10 @@ export default function App() {
   const [testResults, setTestResults] = useState({});
   const [activeTest, setActiveTest] = useState(null);
   const [radarView, setRadarView] = useState(null);
-  const [failureData, setFailureData] = useState({});
   const [radars, setRadars] = useState([]);
   const [copied, setCopied] = useState(null);
   const [failureForm, setFailureForm] = useState({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" });
-  const [customApp, setCustomApp] = useState({ name: "", description: "", icon: "📱", version: "" });
+  const [customApp, setCustomApp] = useState({ name: "", description: "", version: "" });
   const [customTests, setCustomTests] = useState([]);
   const [customLoading, setCustomLoading] = useState(false);
   const [customStatus, setCustomStatus] = useState("");
@@ -180,214 +250,258 @@ export default function App() {
   const [customActive, setCustomActive] = useState(null);
   const [customFailureForm, setCustomFailureForm] = useState({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" });
   const [isCustomSession, setIsCustomSession] = useState(false);
+  const [axUrl, setAxUrl] = useState("");
+  const [axLoading, setAxLoading] = useState(false);
+  const [axStatus, setAxStatus] = useState("");
+  const [axReport, setAxReport] = useState(null);
+  const [buildNotes, setBuildNotes] = useState("");
+  const [buildLoading, setBuildLoading] = useState(false);
+  const [buildStatus, setBuildStatus] = useState("");
+  const [buildReport, setBuildReport] = useState(null);
+  const [matrixFeatures, setMatrixFeatures] = useState("");
+  const [matrixLoading, setMatrixLoading] = useState(false);
+  const [matrixStatus, setMatrixStatus] = useState("");
+  const [matrixReport, setMatrixReport] = useState(null);
 
   const generateRadarId = () => `FB${Math.floor(10000000 + Math.random() * 90000000)}`;
 
-  const selectApp = (appKey) => {
-    setSelectedApp(appKey);
-    setTestResults({});
-    setIsCustomSession(false);
-    setScreen("testplan");
+  const selectApp = (key) => { setSelectedApp(key); setTestResults({}); setIsCustomSession(false); setScreen("testplan"); };
+
+  const markTest = (id, status) => {
+    if (status === "fail") { setActiveTest(id); setFailureForm({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" }); setScreen("failureform"); }
+    else setTestResults(p => ({ ...p, [id]: { status } }));
   };
 
-  const markTest = (testId, status) => {
-    if (status === "fail") {
-      setActiveTest(testId);
-      setFailureForm({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" });
-      setScreen("failureform");
-    } else {
-      setTestResults(prev => ({ ...prev, [testId]: { status } }));
-    }
-  };
-
-  const markCustomTest = (testId, status) => {
-    if (status === "fail") {
-      setCustomActive(testId);
-      setCustomFailureForm({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" });
-      setScreen("customfailure");
-    } else {
-      setCustomResults(prev => ({ ...prev, [testId]: { status } }));
-    }
+  const markCustomTest = (id, status) => {
+    if (status === "fail") { setCustomActive(id); setCustomFailureForm({ actualResult: "", impact: "", rootCause: "", regression: "", severity: "" }); setScreen("customfailure"); }
+    else setCustomResults(p => ({ ...p, [id]: { status } }));
   };
 
   const submitFailure = () => {
     const app = APP_TEST_PLANS[selectedApp];
     const test = app.tests.find(t => t.id === activeTest);
-    const radarId = generateRadarId();
-    const report = RADAR_TEMPLATE(radarId, app.name, test, failureForm, SYSTEM_INFO);
-    const newRadar = { id: radarId, appName: app.name, testId: activeTest, title: test.title, severity: failureForm.severity || test.severity, date: new Date().toLocaleDateString(), report };
-    setRadars(prev => [...prev, newRadar]);
-    setTestResults(prev => ({ ...prev, [activeTest]: { status: "fail", radarId } }));
+    const id = generateRadarId();
+    const report = RADAR_TEMPLATE(id, app.name, test, failureForm, SYSTEM_INFO);
+    setRadars(p => [...p, { id, appName: app.name, title: test.title, severity: failureForm.severity || test.severity, date: new Date().toLocaleDateString(), report }]);
+    setTestResults(p => ({ ...p, [activeTest]: { status: "fail", radarId: id } }));
     setScreen("testplan");
   };
 
   const submitCustomFailure = () => {
     const test = customTests.find(t => t.id === customActive);
-    const radarId = generateRadarId();
-    const report = RADAR_TEMPLATE(radarId, customApp.name, test, customFailureForm, SYSTEM_INFO);
-    const newRadar = { id: radarId, appName: customApp.name, testId: customActive, title: test.title, severity: customFailureForm.severity || test.severity, date: new Date().toLocaleDateString(), report };
-    setRadars(prev => [...prev, newRadar]);
-    setCustomResults(prev => ({ ...prev, [customActive]: { status: "fail", radarId } }));
+    const id = generateRadarId();
+    const report = RADAR_TEMPLATE(id, customApp.name, test, customFailureForm, SYSTEM_INFO);
+    setRadars(p => [...p, { id, appName: customApp.name, title: test.title, severity: customFailureForm.severity || test.severity, date: new Date().toLocaleDateString(), report }]);
+    setCustomResults(p => ({ ...p, [customActive]: { status: "fail", radarId: id } }));
     setScreen("customtests");
+  };
+
+  const callAI = async (system, userMessage) => {
+    const res = await fetch(API_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "mistral-nemo:latest", messages: [{ role: "system", content: system }, { role: "user", content: userMessage }], stream: false })
+    });
+    const data = await res.json();
+    return data.message.content;
   };
 
   const generateCustomTests = async () => {
     if (!customApp.name.trim() || !customApp.description.trim() || customLoading) return;
-    setCustomLoading(true);
-    setCustomStatus("Generating test plan...");
-    setCustomTests([]);
+    setCustomLoading(true); setCustomStatus("Generating test plan…"); setCustomTests([]);
     try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "mistral-nemo:latest",
-          messages: [
-            { role: "system", content: CUSTOM_TEST_SYSTEM },
-            { role: "user", content: `App: ${customApp.name}\nVersion: ${customApp.version || "Latest"}\nDescription: ${customApp.description}` }
-          ],
-          stream: false
-        })
-      });
-      const data = await res.json();
-      const content = data.message.content.trim();
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const tests = JSON.parse(jsonMatch[0]);
-        setCustomTests(tests);
-        setCustomResults({});
-        setCustomStatus("");
-        setIsCustomSession(true);
-        setScreen("customtests");
-      } else {
-        setCustomStatus("Error parsing response — try again");
-      }
-    } catch (err) {
-      setCustomStatus("Error — is Ollama running?");
-    }
+      const content = await callAI(CUSTOM_TEST_SYSTEM, `App: ${customApp.name}\nVersion: ${customApp.version || "Latest"}\nDescription: ${customApp.description}`);
+      const match = content.match(/\[[\s\S]*\]/);
+      if (match) { setCustomTests(JSON.parse(match[0])); setCustomResults({}); setIsCustomSession(true); setCustomStatus(""); setScreen("customtests"); }
+      else setCustomStatus("Error parsing — try again");
+    } catch { setCustomStatus("Error — is Ollama running?"); }
     setCustomLoading(false);
   };
 
-  const copyToClipboard = (text, id) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
+  const runAccessibilityAudit = async () => {
+    if (!axUrl.trim() || axLoading) return;
+    setAxLoading(true); setAxStatus("Running accessibility audit…"); setAxReport(null);
+    try {
+      const content = await callAI(ACCESSIBILITY_SYSTEM, `Perform a comprehensive accessibility audit for: ${axUrl}\n\nEvaluate against WCAG 2.1 and Apple Human Interface Guidelines. Be specific and realistic.`);
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) { setAxReport(JSON.parse(match[0])); setAxStatus(""); }
+      else setAxStatus("Error parsing — try again");
+    } catch { setAxStatus("Error — is Ollama running?"); }
+    setAxLoading(false);
   };
 
-  const getStats = () => {
-    if (!selectedApp) return {};
-    const tests = APP_TEST_PLANS[selectedApp].tests;
-    const passed = tests.filter(t => testResults[t.id]?.status === "pass").length;
-    const failed = tests.filter(t => testResults[t.id]?.status === "fail").length;
-    const pending = tests.length - passed - failed;
-    return { total: tests.length, passed, failed, pending };
+  const parseBuildNotes = async () => {
+    if (!buildNotes.trim() || buildLoading) return;
+    setBuildLoading(true); setBuildStatus("Parsing release notes…"); setBuildReport(null);
+    try {
+      const content = await callAI(BUILD_NOTES_SYSTEM, `Parse these release notes and generate test cases:\n\n${buildNotes}`);
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) { setBuildReport(JSON.parse(match[0])); setBuildStatus(""); }
+      else setBuildStatus("Error parsing — try again");
+    } catch { setBuildStatus("Error — is Ollama running?"); }
+    setBuildLoading(false);
   };
 
-  const getCustomStats = () => {
-    const passed = customTests.filter(t => customResults[t.id]?.status === "pass").length;
-    const failed = customTests.filter(t => customResults[t.id]?.status === "fail").length;
-    const pending = customTests.length - passed - failed;
-    return { total: customTests.length, passed, failed, pending };
+  const generateMatrix = async () => {
+    if (!matrixFeatures.trim() || matrixLoading) return;
+    setMatrixLoading(true); setMatrixStatus("Building test matrix…"); setMatrixReport(null);
+    try {
+      const content = await callAI(MATRIX_SYSTEM, `Generate a test matrix for these features:\n\n${matrixFeatures}`);
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) { setMatrixReport(JSON.parse(match[0])); setMatrixStatus(""); }
+      else setMatrixStatus("Error parsing — try again");
+    } catch { setMatrixStatus("Error — is Ollama running?"); }
+    setMatrixLoading(false);
   };
 
-  const s = {
-    app: { display: "flex", height: "100vh", background: "#1c1c1e", color: "#f5f5f7", fontFamily: "-apple-system, 'SF Pro Text', sans-serif" },
-    sidebar: { width: "240px", background: "#161618", borderRight: "0.5px solid #2c2c2e", display: "flex", flexDirection: "column", padding: "20px 0", flexShrink: 0 },
-    sidebarTitle: { fontSize: "13px", fontWeight: 700, color: "#f5f5f7", padding: "0 16px 16px", borderBottom: "0.5px solid #2c2c2e", marginBottom: "8px" },
-    sidebarItem: (active) => ({ padding: "8px 16px", fontSize: "13px", color: active ? "#f5f5f7" : "#8e8e93", background: active ? "rgba(255,255,255,0.07)" : "transparent", cursor: "pointer", borderLeft: active ? "2px solid #0a84ff" : "2px solid transparent", display: "flex", alignItems: "center", gap: "8px" }),
-    main: { flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" },
-    topbar: { height: "52px", borderBottom: "0.5px solid #2c2c2e", display: "flex", alignItems: "center", padding: "0 24px", gap: "10px", background: "#1c1c1e", flexShrink: 0 },
-    dot: (color) => ({ width: 6, height: 6, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}` }),
-    content: { flex: 1, padding: "32px", overflowY: "auto" },
-    card: { background: "#2c2c2e", border: "0.5px solid #3a3a3c", borderRadius: "12px", padding: "16px 20px", marginBottom: "10px" },
-    btn: (color, small) => ({ padding: small ? "5px 12px" : "9px 18px", borderRadius: "8px", background: color, color: "#fff", border: "none", cursor: "pointer", fontSize: small ? "11px" : "13px", fontWeight: 500, transition: "opacity 0.2s" }),
-    tag: (color) => ({ padding: "2px 8px", borderRadius: "4px", background: color + "22", color, fontSize: "11px", fontWeight: 600, border: `0.5px solid ${color}44` }),
-    input: { background: "#1c1c1e", border: "0.5px solid #3a3a3c", borderRadius: "8px", color: "#f5f5f7", padding: "10px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" },
-    textarea: { background: "#1c1c1e", border: "0.5px solid #3a3a3c", borderRadius: "8px", color: "#f5f5f7", padding: "10px 12px", fontSize: "13px", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box", resize: "vertical" },
-    label: { fontSize: "11px", color: "#8e8e93", marginBottom: "6px", display: "block", letterSpacing: "0.04em" },
-    grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" },
-    appCard: { background: "#2c2c2e", border: "0.5px solid #3a3a3c", borderRadius: "16px", padding: "24px 20px", cursor: "pointer", transition: "all 0.2s", textAlign: "center" },
-    statBox: (color) => ({ background: color + "11", border: `0.5px solid ${color}33`, borderRadius: "10px", padding: "14px 18px", flex: 1 }),
+  const copyToClipboard = (text, id) => { navigator.clipboard.writeText(text); setCopied(id); setTimeout(() => setCopied(null), 2000); };
+
+  const getStats = (tests, results) => {
+    const passed = tests.filter(t => results[t.id]?.status === "pass").length;
+    const failed = tests.filter(t => results[t.id]?.status === "fail").length;
+    return { total: tests.length, passed, failed, pending: tests.length - passed - failed };
   };
 
-  const severityColor = (s) => ({ Critical: "#ff453a", High: "#ff9f0a", Medium: "#ffd60a", Low: "#30d158" })[s] || "#636366";
-  const statusColor = (status) => ({ pass: "#30d158", fail: "#ff453a", pending: "#636366" })[status] || "#636366";
+  const sevColor = (s) => ({ Critical: "#ff3b30", High: "#ff9500", Medium: "#ffcc00", Low: "#34c759" })[s] || "#8e8e93";
+  const statColor = (s) => ({ pass: "#34c759", fail: "#ff3b30" })[s] || "#8e8e93";
+  const gradeColor = (g) => ({ A: "#34c759", B: "#0071e3", C: "#ff9500", D: "#ff3b30", F: "#ff3b30" })[g] || "#8e8e93";
+  const coverageColor = (c) => ({ required: "#34c759", recommended: "#0071e3", optional: "#ff9500", "not applicable": "#e5e5ea" })[c] || "#8e8e93";
+
+  const C = {
+    wrap: { display: "flex", height: "100vh", background: "#f5f5f7", fontFamily: "-apple-system, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', sans-serif", color: "#1d1d1f" },
+    sidebar: { width: "220px", background: "rgba(255,255,255,0.72)", backdropFilter: "blur(20px)", borderRight: "0.5px solid rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", flexShrink: 0 },
+    sidebarTop: { padding: "20px 16px 12px" },
+    appMark: { marginBottom: "20px" },
+    navSection: { fontSize: "10px", color: "#8e8e93", fontWeight: 600, letterSpacing: "0.06em", padding: "0 16px", marginBottom: "4px", textTransform: "uppercase" },
+    navItem: (active) => ({ display: "flex", alignItems: "center", gap: "8px", padding: "7px 12px", margin: "0 4px", borderRadius: "8px", cursor: "pointer", background: active ? "rgba(0,113,227,0.1)" : "transparent", color: active ? "#0071e3" : "#1d1d1f", fontSize: "13px", fontWeight: active ? 500 : 400, transition: "all 0.15s" }),
+    navIcon: { fontSize: "12px", width: "16px", textAlign: "center" },
+    sidebarDivider: { height: "0.5px", background: "rgba(0,0,0,0.08)", margin: "8px 16px" },
+    sidebarFooter: { marginTop: "auto", padding: "12px 16px 20px" },
+    sessionCard: { background: "rgba(0,113,227,0.06)", border: "0.5px solid rgba(0,113,227,0.15)", borderRadius: "10px", padding: "10px 12px" },
+    sessionLabel: { fontSize: "10px", color: "#0071e3", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: "4px" },
+    sessionName: { fontSize: "12px", fontWeight: 600, color: "#1d1d1f", marginBottom: "3px" },
+    sessionStats: { fontSize: "11px", color: "#8e8e93" },
+    main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 },
+    topbar: { height: "52px", background: "rgba(255,255,255,0.72)", backdropFilter: "blur(20px)", borderBottom: "0.5px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", padding: "0 24px", gap: "10px", flexShrink: 0 },
+    topbarTitle: { fontSize: "13px", fontWeight: 600, color: "#1d1d1f", letterSpacing: "-0.01em" },
+    topbarSub: { fontSize: "12px", color: "#8e8e93" },
+    topbarActions: { marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" },
+    content: { flex: 1, overflowY: "auto", padding: "28px 32px" },
+    heroTitle: { fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: "#1d1d1f", marginBottom: "6px" },
+    heroSub: { fontSize: "15px", color: "#6e6e73", marginBottom: "28px", fontWeight: 400 },
+    grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "10px" },
+    appCard: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "16px", padding: "20px 16px", cursor: "pointer", transition: "all 0.2s", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+    tag: (color) => ({ display: "inline-flex", alignItems: "center", padding: "2px 7px", borderRadius: "4px", background: color + "15", color, fontSize: "10px", fontWeight: 600, letterSpacing: "0.02em" }),
+    statRow: { display: "flex", gap: "8px", marginBottom: "20px" },
+    statBox: (color) => ({ flex: 1, background: "#fff", border: `0.5px solid ${color}30`, borderRadius: "10px", padding: "12px 14px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }),
+    statNum: (color) => ({ fontSize: "24px", fontWeight: 700, color, letterSpacing: "-0.02em", lineHeight: 1 }),
+    statLabel: { fontSize: "11px", color: "#8e8e93", marginTop: "2px" },
+    card: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", padding: "14px 18px", marginBottom: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", transition: "all 0.15s" },
+    testId: { fontSize: "10px", color: "#8e8e93", fontFamily: "SF Mono, Monaco, monospace", letterSpacing: "0.04em" },
+    testTitle: { fontSize: "14px", fontWeight: 500, color: "#1d1d1f", margin: "4px 0", letterSpacing: "-0.01em" },
+    testExpected: { fontSize: "12px", color: "#6e6e73" },
+    btn: (bg, text, small) => ({ padding: small ? "5px 11px" : "8px 16px", borderRadius: "8px", background: bg, color: text || "#fff", border: "none", cursor: "pointer", fontSize: small ? "11px" : "13px", fontWeight: 500, letterSpacing: "-0.01em", transition: "opacity 0.15s", whiteSpace: "nowrap" }),
+    outlineBtn: (color) => ({ padding: "5px 11px", borderRadius: "8px", background: "transparent", color, border: `0.5px solid ${color}`, cursor: "pointer", fontSize: "11px", fontWeight: 500 }),
+    inputWrap: { marginBottom: "14px" },
+    inputLabel: { fontSize: "11px", color: "#6e6e73", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: "6px", display: "block" },
+    input: { width: "100%", background: "#fff", border: "0.5px solid rgba(0,0,0,0.15)", borderRadius: "8px", color: "#1d1d1f", padding: "10px 12px", fontSize: "14px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" },
+    textarea: { width: "100%", background: "#fff", border: "0.5px solid rgba(0,0,0,0.15)", borderRadius: "8px", color: "#1d1d1f", padding: "10px 12px", fontSize: "14px", outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" },
+    formCard: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "16px", padding: "24px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" },
+    radarCard: { background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", padding: "16px 20px", marginBottom: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+    radarPre: { fontSize: "11px", color: "#1d1d1f", whiteSpace: "pre-wrap", fontFamily: "SF Mono, Monaco, monospace", background: "#f5f5f7", padding: "14px", borderRadius: "8px", lineHeight: 1.65, marginTop: "10px" },
+    emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 0", color: "#8e8e93", textAlign: "center" },
+    statusDot: (color) => ({ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }),
+    infoRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 16px", background: "#fff", borderRadius: "8px", marginBottom: "6px", border: "0.5px solid rgba(0,0,0,0.06)" },
+    infoKey: { fontSize: "12px", color: "#6e6e73", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 500 },
+    infoVal: { fontSize: "12px", color: "#1d1d1f", fontFamily: "SF Mono, Monaco, monospace" },
+  };
 
   const renderTestCard = (test, result, onMark) => (
-    <div key={test.id} style={{ ...s.card, borderLeft: `3px solid ${result ? statusColor(result.status) : "#3a3a3c"}` }}>
+    <div key={test.id} style={{ ...C.card, borderLeft: `3px solid ${result ? statColor(result.status) : "#e5e5ea"}` }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "11px", color: "#48484a", fontFamily: "monospace" }}>{test.id}</span>
-            <span style={s.tag(severityColor(test.severity))}>{test.severity}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", flexWrap: "wrap" }}>
+            <span style={C.testId}>{test.id}</span>
+            <span style={C.tag(sevColor(test.severity))}>{test.severity}</span>
             <span style={{ fontSize: "11px", color: "#8e8e93" }}>{test.area}</span>
-            {result?.radarId && <span style={s.tag("#0a84ff")}>{result.radarId}</span>}
+            {result?.radarId && <span style={C.tag("#0071e3")}>{result.radarId}</span>}
           </div>
-          <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>{test.title}</div>
-          <div style={{ fontSize: "12px", color: "#8e8e93" }}>Expected: {test.expected}</div>
+          <div style={C.testTitle}>{test.title}</div>
+          <div style={C.testExpected}>Expected: {test.expected}</div>
         </div>
-        <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: "6px", flexShrink: 0, alignItems: "center" }}>
           {!result ? (
             <>
-              <button onClick={() => onMark(test.id, "pass")} style={s.btn("#30d158", true)}>✓ Pass</button>
-              <button onClick={() => onMark(test.id, "fail")} style={s.btn("#ff453a", true)}>✗ Fail</button>
+              <button onClick={() => onMark(test.id, "pass")} style={C.btn("#34c759", "#fff", true)}>Pass</button>
+              <button onClick={() => onMark(test.id, "fail")} style={C.btn("#ff3b30", "#fff", true)}>Fail</button>
             </>
           ) : (
-            <span style={{ fontSize: "12px", color: statusColor(result.status), fontWeight: 600 }}>
+            <span style={{ fontSize: "12px", color: statColor(result.status), fontWeight: 600 }}>
               {result.status === "pass" ? "✓ Passed" : "✗ Failed"}
             </span>
           )}
         </div>
       </div>
       <details style={{ marginTop: "8px" }}>
-        <summary style={{ fontSize: "11px", color: "#48484a", cursor: "pointer" }}>View steps ({test.steps.length})</summary>
-        <div style={{ marginTop: "6px", paddingLeft: "12px" }}>
-          {test.steps.map((step, i) => <div key={i} style={{ fontSize: "12px", color: "#8e8e93", marginBottom: "2px" }}>{i + 1}. {step}</div>)}
+        <summary style={{ fontSize: "11px", color: "#8e8e93", cursor: "pointer", userSelect: "none" }}>Steps to reproduce ({test.steps.length})</summary>
+        <div style={{ marginTop: "6px", paddingLeft: "8px", borderLeft: "2px solid #e5e5ea" }}>
+          {test.steps.map((step, i) => <div key={i} style={{ fontSize: "12px", color: "#6e6e73", padding: "2px 0" }}>{i + 1}. {step}</div>)}
         </div>
       </details>
     </div>
   );
 
+  const renderStats = (tests, results) => {
+    const st = getStats(tests, results);
+    return (
+      <div style={C.statRow}>
+        {[{ l: "Total", v: st.total, c: "#0071e3" }, { l: "Passed", v: st.passed, c: "#34c759" }, { l: "Failed", v: st.failed, c: "#ff3b30" }, { l: "Pending", v: st.pending, c: "#8e8e93" }].map(s => (
+          <div key={s.l} style={C.statBox(s.c)}>
+            <div style={C.statNum(s.c)}>{s.v}</div>
+            <div style={C.statLabel}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderFailureForm = (form, setForm, onSubmit, onCancel, test) => (
     <>
-      <div style={s.topbar}>
-        <div style={s.dot("#ff453a")} />
-        <span style={{ fontSize: "13px", fontWeight: 500 }}>File Radar — {test?.id}</span>
+      <div style={C.topbar}>
+        <div style={C.statusDot("#ff3b30")} />
+        <span style={C.topbarTitle}>File Radar — {test?.id}</span>
+        <span style={{ ...C.topbarSub, marginLeft: "8px" }}>{test?.title}</span>
       </div>
-      <div style={s.content}>
-        <div style={{ maxWidth: "640px" }}>
-          <div style={{ fontSize: "18px", fontWeight: 700, marginBottom: "4px" }}>File Radar Bug Report</div>
-          <div style={{ fontSize: "13px", color: "#8e8e93", marginBottom: "24px" }}>{test?.title}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div>
-              <label style={s.label}>ACTUAL RESULT *</label>
-              <textarea value={form.actualResult} onChange={e => setForm(p => ({ ...p, actualResult: e.target.value }))} placeholder="What actually happened?" rows={3} style={s.textarea} />
+      <div style={C.content}>
+        <div style={{ maxWidth: "580px" }}>
+          <div style={C.formCard}>
+            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "4px" }}>File Radar Bug Report</div>
+            <div style={{ fontSize: "13px", color: "#6e6e73", marginBottom: "20px" }}>This generates a formatted Radar report added to your portfolio.</div>
+            <div style={C.inputWrap}>
+              <label style={C.inputLabel}>Actual Result *</label>
+              <textarea value={form.actualResult} onChange={e => setForm(p => ({ ...p, actualResult: e.target.value }))} placeholder="Describe what actually happened…" rows={3} style={C.textarea} />
             </div>
-            <div>
-              <label style={s.label}>SEVERITY</label>
-              <select value={form.severity} onChange={e => setForm(p => ({ ...p, severity: e.target.value }))} style={{ ...s.input, appearance: "none" }}>
+            <div style={C.inputWrap}>
+              <label style={C.inputLabel}>Severity</label>
+              <select value={form.severity} onChange={e => setForm(p => ({ ...p, severity: e.target.value }))} style={{ ...C.input, appearance: "none" }}>
                 <option value="">Use default ({test?.severity})</option>
-                <option value="Critical">Critical</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
+                <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
               </select>
             </div>
-            <div>
-              <label style={s.label}>IMPACT</label>
-              <textarea value={form.impact} onChange={e => setForm(p => ({ ...p, impact: e.target.value }))} placeholder="Who is affected and how severely?" rows={2} style={s.textarea} />
+            <div style={C.inputWrap}>
+              <label style={C.inputLabel}>Impact</label>
+              <textarea value={form.impact} onChange={e => setForm(p => ({ ...p, impact: e.target.value }))} placeholder="Who is affected and how severely?" rows={2} style={C.textarea} />
             </div>
-            <div>
-              <label style={s.label}>POSSIBLE ROOT CAUSE</label>
-              <textarea value={form.rootCause} onChange={e => setForm(p => ({ ...p, rootCause: e.target.value }))} placeholder="Your technical hypothesis..." rows={2} style={s.textarea} />
+            <div style={C.inputWrap}>
+              <label style={C.inputLabel}>Possible Root Cause</label>
+              <textarea value={form.rootCause} onChange={e => setForm(p => ({ ...p, rootCause: e.target.value }))} placeholder="Your technical hypothesis…" rows={2} style={C.textarea} />
             </div>
-            <div>
-              <label style={s.label}>REGRESSION (optional)</label>
-              <input value={form.regression} onChange={e => setForm(p => ({ ...p, regression: e.target.value }))} placeholder="e.g. Worked in previous build, broken in 26.5" style={s.input} />
+            <div style={C.inputWrap}>
+              <label style={C.inputLabel}>Regression (optional)</label>
+              <input value={form.regression} onChange={e => setForm(p => ({ ...p, regression: e.target.value }))} placeholder="e.g. Worked in previous build, broken in 26.5" style={C.input} />
             </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button onClick={onSubmit} disabled={!form.actualResult.trim()} style={{ ...s.btn("#ff453a"), opacity: !form.actualResult.trim() ? 0.3 : 1 }}>File Radar Report</button>
-              <button onClick={onCancel} style={s.btn("#3a3a3c")}>Cancel</button>
+            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+              <button onClick={onSubmit} disabled={!form.actualResult.trim()} style={{ ...C.btn("#0071e3", "#fff"), opacity: !form.actualResult.trim() ? 0.3 : 1 }}>File Radar</button>
+              <button onClick={onCancel} style={C.btn("#f5f5f7", "#1d1d1f")}>Cancel</button>
             </div>
           </div>
         </div>
@@ -395,87 +509,114 @@ export default function App() {
     </>
   );
 
-  const renderStats = (stats) => (
-    <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
-      {[
-        { label: "Total", value: stats.total, color: "#0a84ff" },
-        { label: "Passed", value: stats.passed, color: "#30d158" },
-        { label: "Failed", value: stats.failed, color: "#ff453a" },
-        { label: "Pending", value: stats.pending, color: "#636366" }
-      ].map(stat => (
-        <div key={stat.label} style={s.statBox(stat.color)}>
-          <div style={{ fontSize: "22px", fontWeight: 700, color: stat.color }}>{stat.value}</div>
-          <div style={{ fontSize: "11px", color: "#8e8e93" }}>{stat.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const sidebarItems = [
+  const navItems = [
     { id: "home", label: "App Library", icon: "⊞" },
-    { id: "custom", label: "Custom App", icon: "＋" },
-    { id: "radars", label: `Radar Portfolio (${radars.length})`, icon: "◎" },
+    { id: "custom", label: "Custom App", icon: "+" },
+    { id: "accessibility", label: "Accessibility Audit", icon: "◎" },
+    { id: "buildnotes", label: "Build Notes Parser", icon: "≡" },
+    { id: "matrix", label: "Test Matrix", icon: "⊟" },
+    { id: "radars", label: "Radar Portfolio", icon: "◈", badge: radars.length },
     { id: "system", label: "System Info", icon: "⌥" }
   ];
 
-  return (
-    <div style={s.app}>
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } ::-webkit-scrollbar { width: 0; } textarea::placeholder, input::placeholder { color: #48484a; }`}</style>
+  const activeNav = ["home", "testplan", "failureform"].includes(screen) ? "home" :
+    ["custom", "customtests", "customfailure"].includes(screen) ? "custom" : screen;
 
-      <div style={s.sidebar}>
-        <div style={s.sidebarTitle}>
-          🍎 Apple QA Radar
-          <div style={{ fontSize: "10px", color: "#48484a", marginTop: "2px", fontWeight: 400 }}>QA Command Center</div>
+  const currentAppTests = selectedApp ? APP_TEST_PLANS[selectedApp].tests : [];
+  const sessionStats = isCustomSession ? getStats(customTests, customResults) : (selectedApp ? getStats(currentAppTests, testResults) : null);
+
+  return (
+    <div style={C.wrap}>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 0; }
+        textarea::placeholder, input::placeholder { color: #c7c7cc; }
+        details summary::-webkit-details-marker { display: none; }
+        details summary::before { content: "▸ "; }
+        details[open] summary::before { content: "▾ "; }
+        .app-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important; transform: translateY(-1px); }
+        .nav-item:hover { background: rgba(0,0,0,0.04) !important; }
+      `}</style>
+
+      {/* Sidebar */}
+      <div style={C.sidebar}>
+        <div style={C.sidebarTop}>
+          <div style={C.appMark}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "1px" }}>
+              <span style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.04em", color: "#0071e3" }}>AI</span>
+              <span style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.04em", color: "#1d1d1f" }}>dria</span>
+              <span style={{ fontSize: "8px", fontWeight: 700, color: "#0071e3", letterSpacing: "0.1em", marginLeft: "3px", alignSelf: "flex-end", marginBottom: "3px" }}>QA</span>
+            </div>
+            <div style={{ fontSize: "9px", color: "#8e8e93", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: "1px" }}>Command Center</div>
+          </div>
+
+          <div style={C.navSection}>Testing</div>
+          {navItems.slice(0, 2).map(item => (
+            <div key={item.id} className="nav-item" style={C.navItem(activeNav === item.id)} onClick={() => setScreen(item.id)}>
+              <span style={C.navIcon}>{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+
+          <div style={{ ...C.sidebarDivider, margin: "8px 16px" }} />
+          <div style={C.navSection}>Tools</div>
+          {navItems.slice(2, 5).map(item => (
+            <div key={item.id} className="nav-item" style={C.navItem(activeNav === item.id)} onClick={() => setScreen(item.id)}>
+              <span style={C.navIcon}>{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+
+          <div style={{ ...C.sidebarDivider, margin: "8px 16px" }} />
+          <div style={C.navSection}>Reports</div>
+          {navItems.slice(5).map(item => (
+            <div key={item.id} className="nav-item" style={C.navItem(activeNav === item.id)} onClick={() => setScreen(item.id)}>
+              <span style={C.navIcon}>{item.icon}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge > 0 && <span style={{ background: "#0071e3", color: "#fff", fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "10px" }}>{item.badge}</span>}
+            </div>
+          ))}
         </div>
-        {sidebarItems.map(item => (
-          <div key={item.id} style={s.sidebarItem(screen === item.id || (item.id === "home" && (screen === "testplan" || screen === "failureform")) || (item.id === "custom" && (screen === "customtests" || screen === "customfailure")))} onClick={() => setScreen(item.id)}>
-            <span>{item.icon}</span>{item.label}
-          </div>
-        ))}
-        {selectedApp && !isCustomSession && (
-          <div style={{ marginTop: "16px", padding: "0 16px" }}>
-            <div style={{ fontSize: "10px", color: "#48484a", marginBottom: "8px", letterSpacing: "0.06em" }}>CURRENT SESSION</div>
-            <div style={{ fontSize: "12px", color: "#0a84ff" }}>{APP_TEST_PLANS[selectedApp].icon} {APP_TEST_PLANS[selectedApp].name}</div>
-            {(() => { const st = getStats(); return <div style={{ fontSize: "11px", color: "#8e8e93", marginTop: "4px" }}>✓ {st.passed} · ✗ {st.failed} · {st.pending} pending</div>; })()}
-          </div>
-        )}
-        {isCustomSession && customTests.length > 0 && (
-          <div style={{ marginTop: "16px", padding: "0 16px" }}>
-            <div style={{ fontSize: "10px", color: "#48484a", marginBottom: "8px", letterSpacing: "0.06em" }}>CUSTOM SESSION</div>
-            <div style={{ fontSize: "12px", color: "#5e5ce6" }}>{customApp.icon} {customApp.name}</div>
-            {(() => { const st = getCustomStats(); return <div style={{ fontSize: "11px", color: "#8e8e93", marginTop: "4px" }}>✓ {st.passed} · ✗ {st.failed} · {st.pending} pending</div>; })()}
-          </div>
-        )}
+
+        <div style={C.sidebarFooter}>
+          {sessionStats && (
+            <div style={C.sessionCard}>
+              <div style={C.sessionLabel}>Active Session</div>
+              <div style={C.sessionName}>{isCustomSession ? customApp.name : APP_TEST_PLANS[selectedApp]?.name}</div>
+              <div style={C.sessionStats}>{sessionStats.passed} passed · {sessionStats.failed} failed · {sessionStats.pending} pending</div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div style={s.main}>
+      {/* Main */}
+      <div style={C.main}>
 
         {/* Home */}
         {screen === "home" && (
           <>
-            <div style={s.topbar}>
-              <div style={s.dot("#0a84ff")} />
-              <span style={{ fontSize: "13px", fontWeight: 500 }}>App Library</span>
-              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#48484a" }}>Select an app to begin testing</span>
+            <div style={C.topbar}>
+              <div style={C.statusDot("#34c759")} />
+              <span style={C.topbarTitle}>App Library</span>
+              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#8e8e93" }}>Select an app to begin testing</span>
             </div>
-            <div style={s.content}>
-              <div style={{ marginBottom: "24px" }}>
-                <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "6px" }}>Apple QA Command Center</div>
-                <div style={{ fontSize: "13px", color: "#8e8e93" }}>Select an Apple app to generate a test plan, run tests, and file Radar bug reports.</div>
-              </div>
-              <div style={s.grid}>
-                {Object.entries(APP_TEST_PLANS).map(([key, app]) => (
-                  <div key={key} style={s.appCard} onClick={() => selectApp(key)}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "#0a84ff"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "#3a3a3c"}>
-                    <div style={{ fontSize: "36px", marginBottom: "10px" }}>{app.icon}</div>
-                    <div style={{ fontSize: "15px", fontWeight: 600, marginBottom: "4px" }}>{app.name}</div>
-                    <div style={{ fontSize: "11px", color: "#8e8e93", marginBottom: "10px" }}>v{app.version} · {app.tests.length} tests</div>
-                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center" }}>
-                      {app.areas.slice(0, 3).map(a => <span key={a} style={{ fontSize: "10px", color: "#48484a", background: "#3a3a3c", padding: "2px 6px", borderRadius: "4px" }}>{a}</span>)}
+            <div style={C.content}>
+              <div style={{ animation: "fadeIn 0.3s ease" }}>
+                <div style={C.heroTitle}>Apple QA Command Center</div>
+                <div style={C.heroSub}>Select an Apple app to generate a structured test plan, execute tests, and file Radar-style bug reports.</div>
+                <div style={C.grid}>
+                  {Object.entries(APP_TEST_PLANS).map(([key, app]) => (
+                    <div key={key} className="app-card" style={C.appCard} onClick={() => selectApp(key)}>
+                      <div style={{ fontSize: "32px", marginBottom: "10px" }}>{app.icon}</div>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#1d1d1f", marginBottom: "3px", letterSpacing: "-0.01em" }}>{app.name}</div>
+                      <div style={{ fontSize: "11px", color: "#8e8e93", marginBottom: "10px" }}>v{app.version} · {app.tests.length} tests</div>
+                      <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center" }}>
+                        {app.areas.slice(0, 3).map(a => <span key={a} style={{ fontSize: "10px", color: "#8e8e93", background: "#f5f5f7", padding: "2px 6px", borderRadius: "4px" }}>{a}</span>)}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </>
@@ -484,19 +625,20 @@ export default function App() {
         {/* Test Plan */}
         {screen === "testplan" && selectedApp && (() => {
           const app = APP_TEST_PLANS[selectedApp];
-          const stats = getStats();
+          const st = getStats(app.tests, testResults);
           return (
             <>
-              <div style={s.topbar}>
-                <div style={s.dot("#30d158")} />
-                <span style={{ fontSize: "13px", fontWeight: 500 }}>{app.icon} {app.name} — Test Plan</span>
-                <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
-                  <button onClick={() => setScreen("home")} style={s.btn("#3a3a3c", true)}>← Back</button>
-                  {stats.failed > 0 && <button onClick={() => setScreen("radars")} style={s.btn("#ff453a", true)}>Radars ({stats.failed})</button>}
+              <div style={C.topbar}>
+                <div style={C.statusDot("#0071e3")} />
+                <span style={C.topbarTitle}>{app.name}</span>
+                <span style={{ ...C.topbarSub, marginLeft: "6px" }}>Test Plan · v{app.version}</span>
+                <div style={C.topbarActions}>
+                  {st.failed > 0 && <button onClick={() => setScreen("radars")} style={C.outlineBtn("#ff3b30")}>Radars ({st.failed})</button>}
+                  <button onClick={() => setScreen("home")} style={C.btn("#f5f5f7", "#1d1d1f", true)}>← Library</button>
                 </div>
               </div>
-              <div style={s.content}>
-                {renderStats(stats)}
+              <div style={C.content}>
+                {renderStats(app.tests, testResults)}
                 {app.tests.map(test => renderTestCard(test, testResults[test.id], markTest))}
               </div>
             </>
@@ -512,31 +654,31 @@ export default function App() {
         {/* Custom App */}
         {screen === "custom" && (
           <>
-            <div style={s.topbar}>
-              <div style={s.dot("#5e5ce6")} />
-              <span style={{ fontSize: "13px", fontWeight: 500 }}>Custom App Testing</span>
-              {customStatus && <span style={{ fontSize: "12px", color: "#ffd60a", marginLeft: "8px" }}>{customStatus}</span>}
+            <div style={C.topbar}>
+              <div style={C.statusDot("#0071e3")} />
+              <span style={C.topbarTitle}>Custom App Testing</span>
+              {customStatus && <span style={{ fontSize: "12px", color: "#ff9500", marginLeft: "8px" }}>{customStatus}</span>}
             </div>
-            <div style={s.content}>
-              <div style={{ maxWidth: "640px" }}>
-                <div style={{ fontSize: "18px", fontWeight: 700, marginBottom: "4px", letterSpacing: "-0.01em" }}>Test Any Apple App</div>
-                <div style={{ fontSize: "13px", color: "#8e8e93", marginBottom: "24px" }}>Enter any app name and describe what you want to test. The AI generates a complete test plan automatically — perfect for beta software, new features, or UI testing.</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={C.content}>
+              <div style={{ maxWidth: "580px", animation: "fadeIn 0.3s ease" }}>
+                <div style={C.heroTitle}>Test Any Apple App</div>
+                <div style={C.heroSub}>Describe any Apple app or beta feature. AI generates a complete structured test plan automatically.</div>
+                <div style={C.formCard}>
                   <div style={{ display: "flex", gap: "10px" }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={s.label}>APP NAME *</label>
-                      <input value={customApp.name} onChange={e => setCustomApp(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Freeform, Shortcuts, TestFlight" style={s.input} />
+                    <div style={{ ...C.inputWrap, flex: 1 }}>
+                      <label style={C.inputLabel}>App Name *</label>
+                      <input value={customApp.name} onChange={e => setCustomApp(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Freeform, Shortcuts, TestFlight" style={C.input} />
                     </div>
-                    <div style={{ width: "120px" }}>
-                      <label style={s.label}>VERSION</label>
-                      <input value={customApp.version} onChange={e => setCustomApp(p => ({ ...p, version: e.target.value }))} placeholder="e.g. Beta 3" style={s.input} />
+                    <div style={{ ...C.inputWrap, width: "130px" }}>
+                      <label style={C.inputLabel}>Version</label>
+                      <input value={customApp.version} onChange={e => setCustomApp(p => ({ ...p, version: e.target.value }))} placeholder="e.g. Beta 3" style={C.input} />
                     </div>
                   </div>
-                  <div>
-                    <label style={s.label}>WHAT TO TEST *</label>
-                    <textarea value={customApp.description} onChange={e => setCustomApp(p => ({ ...p, description: e.target.value }))} placeholder="Describe the feature or area you want to test. Example: Test the new collaboration features in Freeform beta including real-time drawing sync, participant management, and iCloud sharing." rows={5} style={s.textarea} />
+                  <div style={C.inputWrap}>
+                    <label style={C.inputLabel}>What to Test *</label>
+                    <textarea value={customApp.description} onChange={e => setCustomApp(p => ({ ...p, description: e.target.value }))} placeholder="Describe the feature or area you want to test in detail." rows={5} style={C.textarea} />
                   </div>
-                  <button onClick={generateCustomTests} disabled={customLoading || !customApp.name.trim() || !customApp.description.trim()} style={{ ...s.btn("#5e5ce6"), opacity: (customLoading || !customApp.name.trim() || !customApp.description.trim()) ? 0.3 : 1, alignSelf: "flex-start" }}>
+                  <button onClick={generateCustomTests} disabled={customLoading || !customApp.name.trim() || !customApp.description.trim()} style={{ ...C.btn("#0071e3", "#fff"), opacity: (customLoading || !customApp.name.trim() || !customApp.description.trim()) ? 0.3 : 1 }}>
                     {customLoading ? customStatus : "Generate Test Plan"}
                   </button>
                 </div>
@@ -547,73 +689,295 @@ export default function App() {
 
         {/* Custom Tests */}
         {screen === "customtests" && customTests.length > 0 && (() => {
-          const stats = getCustomStats();
+          const st = getStats(customTests, customResults);
           return (
             <>
-              <div style={s.topbar}>
-                <div style={s.dot("#5e5ce6")} />
-                <span style={{ fontSize: "13px", fontWeight: 500 }}>{customApp.icon} {customApp.name} — AI Generated Test Plan</span>
-                <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
-                  <button onClick={() => setScreen("custom")} style={s.btn("#3a3a3c", true)}>← New App</button>
-                  {stats.failed > 0 && <button onClick={() => setScreen("radars")} style={s.btn("#ff453a", true)}>Radars ({stats.failed})</button>}
+              <div style={C.topbar}>
+                <div style={C.statusDot("#0071e3")} />
+                <span style={C.topbarTitle}>{customApp.name}</span>
+                <span style={{ ...C.topbarSub, marginLeft: "6px" }}>AI-Generated Test Plan</span>
+                <div style={C.topbarActions}>
+                  {st.failed > 0 && <button onClick={() => setScreen("radars")} style={C.outlineBtn("#ff3b30")}>Radars ({st.failed})</button>}
+                  <button onClick={() => setScreen("custom")} style={C.btn("#f5f5f7", "#1d1d1f", true)}>← New App</button>
                 </div>
               </div>
-              <div style={s.content}>
-                <div style={{ ...s.card, background: "#5e5ce611", border: "0.5px solid #5e5ce633", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "11px", color: "#5e5ce6", fontWeight: 600, marginBottom: "4px" }}>AI GENERATED · {customApp.name} {customApp.version}</div>
-                  <div style={{ fontSize: "12px", color: "#8e8e93" }}>{customApp.description}</div>
+              <div style={C.content}>
+                <div style={{ background: "#0071e315", border: "0.5px solid #0071e330", borderRadius: "10px", padding: "10px 14px", marginBottom: "16px", fontSize: "12px", color: "#0071e3" }}>
+                  <strong>AI Generated</strong> · {customApp.name} {customApp.version} · {customApp.description.slice(0, 100)}…
                 </div>
-                {renderStats(stats)}
+                {renderStats(customTests, customResults)}
                 {customTests.map(test => renderTestCard(test, customResults[test.id], markCustomTest))}
               </div>
             </>
           );
         })()}
 
-        {/* Custom Failure Form */}
+        {/* Custom Failure */}
         {screen === "customfailure" && customActive && (() => {
           const test = customTests.find(t => t.id === customActive);
           return renderFailureForm(customFailureForm, setCustomFailureForm, submitCustomFailure, () => setScreen("customtests"), test);
         })()}
 
+        {/* Accessibility Audit */}
+        {screen === "accessibility" && (
+          <>
+            <div style={C.topbar}>
+              <div style={C.statusDot("#34c759")} />
+              <span style={C.topbarTitle}>Accessibility Audit</span>
+              {axStatus && <span style={{ fontSize: "12px", color: "#ff9500", marginLeft: "8px" }}>{axStatus}</span>}
+            </div>
+            <div style={C.content}>
+              <div style={{ maxWidth: "720px", animation: "fadeIn 0.3s ease" }}>
+                <div style={C.heroTitle}>Accessibility Audit Runner</div>
+                <div style={C.heroSub}>Enter a URL or app description to receive a detailed WCAG 2.1 and Apple HIG accessibility audit report.</div>
+                <div style={C.formCard}>
+                  <div style={C.inputWrap}>
+                    <label style={C.inputLabel}>URL or App Description *</label>
+                    <input value={axUrl} onChange={e => setAxUrl(e.target.value)} placeholder="e.g. https://apple.com or 'Mail app inbox screen on iOS 18'" style={C.input} />
+                  </div>
+                  <button onClick={runAccessibilityAudit} disabled={axLoading || !axUrl.trim()} style={{ ...C.btn("#34c759", "#fff"), opacity: (axLoading || !axUrl.trim()) ? 0.3 : 1 }}>
+                    {axLoading ? axStatus : "Run Accessibility Audit"}
+                  </button>
+                </div>
+
+                {axReport && (
+                  <div style={{ marginTop: "20px", animation: "fadeIn 0.3s ease" }}>
+                    {/* Score */}
+                    <div style={{ ...C.formCard, display: "flex", alignItems: "center", gap: "20px", marginBottom: "16px" }}>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: "48px", fontWeight: 800, color: gradeColor(axReport.grade), letterSpacing: "-0.03em", lineHeight: 1 }}>{axReport.grade}</div>
+                        <div style={{ fontSize: "11px", color: "#8e8e93", marginTop: "2px" }}>Grade</div>
+                      </div>
+                      <div style={{ width: "0.5px", height: "48px", background: "#e5e5ea" }} />
+                      <div>
+                        <div style={{ fontSize: "32px", fontWeight: 700, color: gradeColor(axReport.grade), letterSpacing: "-0.02em", lineHeight: 1 }}>{axReport.score}/100</div>
+                        <div style={{ fontSize: "13px", color: "#6e6e73", marginTop: "4px" }}>{axReport.summary}</div>
+                      </div>
+                    </div>
+
+                    {/* Violations */}
+                    {axReport.violations?.length > 0 && (
+                      <div style={{ marginBottom: "16px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#ff3b30", marginBottom: "8px", letterSpacing: "-0.01em" }}>✗ Violations ({axReport.violations.length})</div>
+                        {axReport.violations.map(v => (
+                          <div key={v.id} style={{ ...C.card, borderLeft: `3px solid ${sevColor(v.severity)}` }}>
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px", flexWrap: "wrap" }}>
+                              <span style={C.testId}>{v.id}</span>
+                              <span style={C.tag(sevColor(v.severity))}>{v.severity}</span>
+                              <span style={C.tag("#0071e3")}>WCAG {v.wcag}</span>
+                              <span style={C.tag("#8e8e93")}>Level {v.level}</span>
+                              <span style={{ fontSize: "11px", color: "#8e8e93" }}>{v.element}</span>
+                            </div>
+                            <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "4px" }}>{v.issue}</div>
+                            <div style={{ fontSize: "12px", color: "#34c759", marginBottom: "2px" }}>Fix: {v.recommendation}</div>
+                            <div style={{ fontSize: "11px", color: "#8e8e93" }}>Apple HIG: {v.appleGuideline}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Passes */}
+                    {axReport.passes?.length > 0 && (
+                      <div style={{ marginBottom: "16px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#34c759", marginBottom: "8px" }}>✓ Passing ({axReport.passes.length})</div>
+                        {axReport.passes.map(p => (
+                          <div key={p.id} style={{ ...C.card, borderLeft: "3px solid #34c759" }}>
+                            <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "2px" }}>{p.criterion}</div>
+                            <div style={{ fontSize: "12px", color: "#6e6e73" }}>{p.detail}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {axReport.recommendations?.length > 0 && (
+                      <div style={C.formCard}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "10px" }}>Top Recommendations</div>
+                        {axReport.recommendations.map((r, i) => (
+                          <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "6px", fontSize: "13px", color: "#1d1d1f" }}>
+                            <span style={{ color: "#0071e3", fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
+                            <span>{r}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Build Notes Parser */}
+        {screen === "buildnotes" && (
+          <>
+            <div style={C.topbar}>
+              <div style={C.statusDot("#ff9500")} />
+              <span style={C.topbarTitle}>Build Notes Parser</span>
+              {buildStatus && <span style={{ fontSize: "12px", color: "#ff9500", marginLeft: "8px" }}>{buildStatus}</span>}
+            </div>
+            <div style={C.content}>
+              <div style={{ maxWidth: "720px", animation: "fadeIn 0.3s ease" }}>
+                <div style={C.heroTitle}>Build Notes Parser</div>
+                <div style={C.heroSub}>Paste Apple release notes or feature descriptions. AI generates test cases for every new feature automatically.</div>
+                <div style={C.formCard}>
+                  <div style={C.inputWrap}>
+                    <label style={C.inputLabel}>Release Notes or Feature Description *</label>
+                    <textarea value={buildNotes} onChange={e => setBuildNotes(e.target.value)} placeholder={`Paste release notes here. Example:\n\niOS 18.4 Release Notes\n• Mail now supports rich text formatting in replies\n• Safari adds new Tab Groups sync across devices\n• Messages adds new emoji reactions\n• Calendar adds travel time suggestions`} rows={8} style={C.textarea} />
+                  </div>
+                  <button onClick={parseBuildNotes} disabled={buildLoading || !buildNotes.trim()} style={{ ...C.btn("#ff9500", "#fff"), opacity: (buildLoading || !buildNotes.trim()) ? 0.3 : 1 }}>
+                    {buildLoading ? buildStatus : "Parse & Generate Test Cases"}
+                  </button>
+                </div>
+
+                {buildReport && (
+                  <div style={{ marginTop: "20px", animation: "fadeIn 0.3s ease" }}>
+                    <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "16px", letterSpacing: "-0.02em" }}>
+                      Generated Test Cases · {buildReport.version}
+                      <span style={{ fontSize: "12px", color: "#8e8e93", fontWeight: 400, marginLeft: "8px" }}>
+                        {buildReport.features?.reduce((acc, f) => acc + f.testCases.length, 0)} total tests
+                      </span>
+                    </div>
+                    {buildReport.features?.map((feature, fi) => (
+                      <div key={fi} style={{ marginBottom: "20px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#ff9500", marginBottom: "8px", letterSpacing: "-0.01em" }}>{feature.name}</div>
+                        {feature.testCases.map(test => (
+                          <div key={test.id} style={{ ...C.card, borderLeft: `3px solid ${sevColor(test.severity)}` }}>
+                            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px", flexWrap: "wrap" }}>
+                              <span style={C.testId}>{test.id}</span>
+                              <span style={C.tag(sevColor(test.severity))}>{test.severity}</span>
+                              <span style={{ fontSize: "11px", color: "#8e8e93" }}>{test.area}</span>
+                            </div>
+                            <div style={C.testTitle}>{test.title}</div>
+                            <div style={C.testExpected}>Expected: {test.expected}</div>
+                            <details style={{ marginTop: "8px" }}>
+                              <summary style={{ fontSize: "11px", color: "#8e8e93", cursor: "pointer" }}>Steps ({test.steps.length})</summary>
+                              <div style={{ marginTop: "6px", paddingLeft: "8px", borderLeft: "2px solid #e5e5ea" }}>
+                                {test.steps.map((s, i) => <div key={i} style={{ fontSize: "12px", color: "#6e6e73", padding: "2px 0" }}>{i + 1}. {s}</div>)}
+                              </div>
+                            </details>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Test Matrix */}
+        {screen === "matrix" && (
+          <>
+            <div style={C.topbar}>
+              <div style={C.statusDot("#0071e3")} />
+              <span style={C.topbarTitle}>Test Matrix Builder</span>
+              {matrixStatus && <span style={{ fontSize: "12px", color: "#ff9500", marginLeft: "8px" }}>{matrixStatus}</span>}
+            </div>
+            <div style={C.content}>
+              <div style={{ maxWidth: "900px", animation: "fadeIn 0.3s ease" }}>
+                <div style={C.heroTitle}>Test Matrix Builder</div>
+                <div style={C.heroSub}>List your features and AI maps them across Apple devices and OS versions, showing required vs optional test coverage.</div>
+                <div style={C.formCard}>
+                  <div style={C.inputWrap}>
+                    <label style={C.inputLabel}>Features to Test *</label>
+                    <textarea value={matrixFeatures} onChange={e => setMatrixFeatures(e.target.value)} placeholder={`List features one per line. Example:\nUser login with Face ID\nPush notifications\nDark mode support\niCloud sync\nVoiceOver accessibility\nLandscape orientation`} rows={7} style={C.textarea} />
+                  </div>
+                  <button onClick={generateMatrix} disabled={matrixLoading || !matrixFeatures.trim()} style={{ ...C.btn("#0071e3", "#fff"), opacity: (matrixLoading || !matrixFeatures.trim()) ? 0.3 : 1 }}>
+                    {matrixLoading ? matrixStatus : "Build Test Matrix"}
+                  </button>
+                </div>
+
+                {matrixReport && (
+                  <div style={{ marginTop: "20px", animation: "fadeIn 0.3s ease", overflowX: "auto" }}>
+                    <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "16px", letterSpacing: "-0.02em" }}>Test Coverage Matrix</div>
+                    <div style={{ background: "#fff", border: "0.5px solid rgba(0,0,0,0.08)", borderRadius: "12px", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                        <thead>
+                          <tr style={{ background: "#f5f5f7" }}>
+                            <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: "#1d1d1f", borderBottom: "0.5px solid rgba(0,0,0,0.08)", fontSize: "11px" }}>Feature</th>
+                            <th style={{ padding: "10px 10px", textAlign: "center", fontWeight: 600, color: "#6e6e73", borderBottom: "0.5px solid rgba(0,0,0,0.08)", fontSize: "11px" }}>Priority</th>
+                            {matrixReport.devices?.map(d => (
+                              <th key={d} style={{ padding: "10px 8px", textAlign: "center", fontWeight: 600, color: "#6e6e73", borderBottom: "0.5px solid rgba(0,0,0,0.08)", fontSize: "10px", minWidth: "80px" }}>{d}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {matrixReport.features?.map((feature, i) => (
+                            <tr key={i} style={{ borderBottom: "0.5px solid rgba(0,0,0,0.05)" }}>
+                              <td style={{ padding: "10px 14px", fontWeight: 500, color: "#1d1d1f" }}>
+                                {feature.name}
+                                {feature.notes && <div style={{ fontSize: "10px", color: "#8e8e93", marginTop: "2px" }}>{feature.notes}</div>}
+                              </td>
+                              <td style={{ padding: "10px", textAlign: "center" }}>
+                                <span style={C.tag(sevColor(feature.priority))}>{feature.priority}</span>
+                              </td>
+                              {matrixReport.devices?.map(d => {
+                                const coverage = feature.coverage?.[d] || "not applicable";
+                                const color = coverageColor(coverage);
+                                return (
+                                  <td key={d} style={{ padding: "10px 8px", textAlign: "center" }}>
+                                    <span style={{ fontSize: "10px", color, fontWeight: 600 }}>
+                                      {coverage === "required" ? "●" : coverage === "recommended" ? "◐" : coverage === "optional" ? "○" : "—"}
+                                    </span>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div style={{ padding: "10px 14px", background: "#f5f5f7", display: "flex", gap: "16px", fontSize: "11px", color: "#8e8e93" }}>
+                        <span><span style={{ color: "#34c759" }}>●</span> Required</span>
+                        <span><span style={{ color: "#0071e3" }}>◐</span> Recommended</span>
+                        <span><span style={{ color: "#ff9500" }}>○</span> Optional</span>
+                        <span>— Not Applicable</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Radar Portfolio */}
         {screen === "radars" && (
           <>
-            <div style={s.topbar}>
-              <div style={s.dot("#ff9f0a")} />
-              <span style={{ fontSize: "13px", fontWeight: 500 }}>Radar Portfolio</span>
-              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#48484a" }}>{radars.length} radar{radars.length !== 1 ? "s" : ""} filed</span>
+            <div style={C.topbar}>
+              <div style={C.statusDot(radars.length > 0 ? "#ff9500" : "#8e8e93")} />
+              <span style={C.topbarTitle}>Radar Portfolio</span>
+              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#8e8e93" }}>{radars.length} radar{radars.length !== 1 ? "s" : ""} filed</span>
             </div>
-            <div style={s.content}>
+            <div style={C.content}>
               {radars.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "60px 0", color: "#48484a" }}>
-                  <div style={{ fontSize: "32px", marginBottom: "12px" }}>◎</div>
-                  <div style={{ fontSize: "14px" }}>No radars filed yet</div>
-                  <div style={{ fontSize: "12px", marginTop: "4px" }}>Run tests and mark failures to generate Radar reports</div>
+                <div style={C.emptyState}>
+                  <div style={{ fontSize: "40px", marginBottom: "12px", opacity: 0.3 }}>◈</div>
+                  <div style={{ fontSize: "15px", fontWeight: 600, color: "#1d1d1f", marginBottom: "4px" }}>No Radars Filed</div>
+                  <div style={{ fontSize: "13px" }}>Run tests and mark failures to generate Radar reports</div>
                 </div>
-              ) : (
-                radars.map(radar => (
-                  <div key={radar.id} style={s.card}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-                      <span style={s.tag(severityColor(radar.severity))}>{radar.severity}</span>
-                      <span style={{ fontSize: "12px", fontFamily: "monospace", color: "#0a84ff" }}>{radar.id}</span>
-                      <span style={{ fontSize: "11px", color: "#48484a" }}>{radar.appName} · {radar.date}</span>
-                      <button onClick={() => copyToClipboard(radar.report, radar.id)} style={{ ...s.btn("#3a3a3c", true), marginLeft: "auto" }}>
-                        {copied === radar.id ? "✓ Copied!" : "Copy Report"}
-                      </button>
-                    </div>
-                    <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "8px" }}>{radar.title}</div>
-                    {radarView === radar.id ? (
-                      <>
-                        <pre style={{ fontSize: "11px", color: "#8e8e93", whiteSpace: "pre-wrap", fontFamily: "monospace", background: "#1c1c1e", padding: "12px", borderRadius: "8px", lineHeight: 1.6 }}>{radar.report}</pre>
-                        <button onClick={() => setRadarView(null)} style={{ ...s.btn("#3a3a3c", true), marginTop: "8px" }}>Hide</button>
-                      </>
-                    ) : (
-                      <button onClick={() => setRadarView(radar.id)} style={s.btn("#3a3a3c", true)}>View Full Report</button>
-                    )}
+              ) : radars.map(radar => (
+                <div key={radar.id} style={C.radarCard}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                    <span style={C.tag(sevColor(radar.severity))}>{radar.severity}</span>
+                    <span style={{ fontSize: "11px", color: "#0071e3", fontFamily: "SF Mono, Monaco, monospace", fontWeight: 600 }}>{radar.id}</span>
+                    <span style={{ fontSize: "11px", color: "#8e8e93" }}>{radar.appName} · {radar.date}</span>
+                    <button onClick={() => copyToClipboard(radar.report, radar.id)} style={{ ...C.btn(copied === radar.id ? "#34c759" : "#f5f5f7", copied === radar.id ? "#fff" : "#1d1d1f", true), marginLeft: "auto" }}>
+                      {copied === radar.id ? "✓ Copied" : "Copy Report"}
+                    </button>
                   </div>
-                ))
-              )}
+                  <div style={{ fontSize: "14px", fontWeight: 500, color: "#1d1d1f", marginBottom: "8px", letterSpacing: "-0.01em" }}>{radar.title}</div>
+                  {radarView === radar.id ? (
+                    <>
+                      <pre style={C.radarPre}>{radar.report}</pre>
+                      <button onClick={() => setRadarView(null)} style={{ ...C.btn("#f5f5f7", "#1d1d1f", true), marginTop: "8px" }}>Hide Report</button>
+                    </>
+                  ) : (
+                    <button onClick={() => setRadarView(radar.id)} style={C.outlineBtn("#0071e3")}>View Full Report</button>
+                  )}
+                </div>
+              ))}
             </div>
           </>
         )}
@@ -621,20 +985,21 @@ export default function App() {
         {/* System Info */}
         {screen === "system" && (
           <>
-            <div style={s.topbar}>
-              <div style={s.dot("#30d158")} />
-              <span style={{ fontSize: "13px", fontWeight: 500 }}>System Information</span>
+            <div style={C.topbar}>
+              <div style={C.statusDot("#34c759")} />
+              <span style={C.topbarTitle}>System Information</span>
+              <span style={{ marginLeft: "auto", fontSize: "11px", color: "#8e8e93" }}>Auto-detected · Included in all Radar reports</span>
             </div>
-            <div style={s.content}>
-              <div style={{ maxWidth: "480px" }}>
-                <div style={{ fontSize: "18px", fontWeight: 700, marginBottom: "20px" }}>Auto-Detected Environment</div>
+            <div style={C.content}>
+              <div style={{ maxWidth: "480px", animation: "fadeIn 0.3s ease" }}>
+                <div style={C.heroTitle}>Your Environment</div>
+                <div style={C.heroSub}>Automatically detected and included in every Radar report you file.</div>
                 {Object.entries(SYSTEM_INFO).map(([key, val]) => (
-                  <div key={key} style={{ ...s.card, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px" }}>
-                    <span style={{ fontSize: "12px", color: "#8e8e93", textTransform: "uppercase", letterSpacing: "0.04em" }}>{key}</span>
-                    <span style={{ fontSize: "13px", color: "#f5f5f7", fontFamily: "monospace" }}>{val}</span>
+                  <div key={key} style={C.infoRow}>
+                    <span style={C.infoKey}>{key}</span>
+                    <span style={C.infoVal}>{val}</span>
                   </div>
                 ))}
-                <div style={{ marginTop: "16px", fontSize: "11px", color: "#48484a" }}>System info is automatically included in every Radar report you file.</div>
               </div>
             </div>
           </>
